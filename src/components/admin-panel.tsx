@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy, History } from 'lucide-react';
+import { Wallet as WalletIcon, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy, History } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -88,7 +88,6 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             ? clients 
             : clients.filter(c => c.id === selectedClientId);
 
-        // Client Payable Calculation
         clientsToProcess.forEach(client => {
             const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
             if (clientLogs.length === 0) return;
@@ -112,7 +111,6 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             totalClientPayable += clientNet - clientWinnings;
         });
 
-        // Upper Payable Calculation is based on ALL applicable clients' data for the period
         let totalGameRawForUpper = 0;
         let totalPassingAmountRawForUpper = 0;
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -160,7 +158,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                     hasActivity
                 };
             }).filter(row => row.hasActivity);
-        } else { // viewMode === 'year'
+        } else {
             const yearStart = startOfYear(selectedDate);
             const yearEnd = endOfYear(selectedDate);
             const monthsInYear = eachMonthOfInterval({ start: yearStart, end: yearEnd });
@@ -196,7 +194,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Broker Profit and Loss
+                <WalletIcon className="h-5 w-5" /> Broker Profit and Loss
             </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
@@ -277,7 +275,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             <CardTitle className="text-sm font-medium">
                                 {viewMode === 'month' ? 'Monthly Profit' : 'Yearly Profit'}
                             </CardTitle>
-                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                            <WalletIcon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -402,11 +400,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
       Object.keys(settlements).forEach(dateStr => {
         if (dateStr !== 'NaN-NaN-NaN' && !/undefined/.test(dateStr)) {
              try {
-                parseISO(dateStr); // check if it's a valid date string
+                parseISO(dateStr); 
                 allDatesWithActivity.add(dateStr);
-            } catch (e) {
-                // Ignore invalid date strings from settlements
-            }
+            } catch (e) {}
         }
       });
     
@@ -429,7 +425,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         }
       } catch (e) {
           console.error("Error creating date interval for running total", e);
-          return 0; // Return 0 if date logic fails
+          return 0;
       }
     
       return cumulativeTotal;
@@ -635,19 +631,19 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                   const dateStr = format(summaryDate, 'yyyy-MM-dd');
                   const declaredNumber = declaredNumbers[`${draw}-${dateStr}`]?.number;
                   return (
-                      <div key={draw} className="bg-card border rounded-lg p-4 flex flex-col justify-between">
+                      <div key={draw} className="bg-card border rounded-lg p-4 flex flex-col justify-between overflow-hidden">
                           <div className="flex justify-between items-start text-card-foreground">
                               <h3 className="font-bold text-lg">{draw}</h3>
                               {declaredNumber ? (
-                                <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-primary text-primary font-bold text-base">
+                                <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-primary text-primary font-bold text-base flex-shrink-0">
                                   {declaredNumber}
                                 </div>
                               ) : (
-                                <HandCoins className="h-5 w-5 text-muted-foreground" />
+                                <HandCoins className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                               )}
                           </div>
-                          <div className="text-center font-bold my-2 flex-grow flex items-center justify-center min-h-0">
-                              <span className="text-2xl break-all">{formatNumber(totalRaw)}</span>
+                          <div className="text-center font-bold my-2 flex-grow flex items-center justify-center min-h-0 overflow-hidden">
+                              <span className="text-2xl break-all line-clamp-2">{formatNumber(totalRaw)}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm p-2 -m-2 mt-2 bg-muted/50 rounded-md">
                               <div className='flex items-center gap-1.5 text-muted-foreground'>
@@ -666,23 +662,23 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       <Landmark className="h-5 w-5 text-primary/80" />
                   </div>
                   <div className="space-y-1 mt-2 flex-grow text-card-foreground">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-2">
                           <span className="text-muted-foreground text-sm">Total</span>
-                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                          <span className="font-semibold text-xl break-all text-right">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground text-sm">Commission</span> 
-                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.commission)}</span>
+                      <div className="flex justify-between items-center gap-2">
+                          <span className="text-muted-foreground text-sm">Comm</span> 
+                          <span className="font-semibold text-xl break-all text-right">{formatNumber(finalSummaryForDay.commission)}</span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-2">
                           <span className="text-muted-foreground text-sm">Passing</span> 
-                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.passing)}</span>
+                          <span className="font-semibold text-xl break-all text-right">{formatNumber(finalSummaryForDay.passing)}</span>
                       </div>
                   </div>
                    <Separator className="my-2 bg-primary/20" />
-                  <div className="flex justify-between items-center font-bold text-xl">
-                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>Final Net</span>
-                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                  <div className="flex justify-between items-center font-bold text-xl gap-2">
+                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'} whitespace-nowrap text-sm`}>Final Net</span>
+                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'} break-all text-right`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
                   </div>
               </div>
           </div>
