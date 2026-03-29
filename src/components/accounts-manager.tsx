@@ -1,19 +1,15 @@
 
 "use client"
 import { useState, useMemo } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
 import { formatNumber } from "@/lib/utils"
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User, Search, ChevronRight, Activity } from 'lucide-react';
+import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export type DrawData = {
   totalAmount: number;
@@ -49,18 +45,19 @@ const DrawsPerformanceTable = ({
   selectedDate: Date | undefined;
   getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
 }) => {
-  const clientCommPercent = client ? parseFloat(client.comm) / 100 : 0.10;
+  const clientCommPercent = client ? parseFloat(client.comm) / 100 : 0;
+  const passingMultiplier = client ? parseFloat(client.pair) : 90;
 
   return (
     <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="w-[180px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Commission</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Net</TableHead>
+            <TableHead className="w-[150px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total Played</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Comm ({client?.comm || 0}%)</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Winnings</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Draw Net</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -71,38 +68,43 @@ const DrawsPerformanceTable = ({
             const winningNumber = getDeclaredNumber(drawName, selectedDate);
             
             const commission = totalAmount * clientCommPercent;
-            const passingMultiplier = client ? parseFloat(client.pair) : 90;
-            const passingTotal = passingAmount * passingMultiplier;
-            const net = (totalAmount - commission) - passingTotal;
+            const winnings = passingAmount * passingMultiplier;
+            const net = (totalAmount - commission) - winnings;
 
             if (totalAmount === 0) return null;
 
             return (
               <TableRow key={drawName} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-bold py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary">{drawName}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-primary text-sm font-black">{drawName}</span>
                     {winningNumber && (
-                      <Badge variant="outline" className="font-black border-primary/20 text-primary bg-primary/5">
-                        ({winningNumber})
+                      <Badge variant="secondary" className="w-fit font-black border-primary/20 text-primary bg-primary/10 text-[10px] px-1.5 h-5">
+                        Result: {winningNumber}
                       </Badge>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">
-                  {passingAmount > 0 ? formatNumber(passingAmount) : '-'}
-                </TableCell>
                 <TableCell className="text-right font-bold tabular-nums">
                   ₹{formatNumber(totalAmount)}
                 </TableCell>
-                <TableCell className="text-right font-mono text-destructive">
+                <TableCell className="text-right font-mono text-destructive text-xs">
                   -₹{formatNumber(commission)}
+                </TableCell>
+                <TableCell className="text-right font-mono text-destructive text-xs">
+                   <div className="flex flex-col items-end">
+                      <span>-₹{formatNumber(winnings)}</span>
+                      {passingAmount > 0 && <span className="text-[9px] text-muted-foreground">({passingAmount} pts)</span>}
+                   </div>
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-black tabular-nums",
                   net >= 0 ? "text-primary" : "text-destructive"
                 )}>
-                  ₹{formatNumber(net)}
+                  <div className="flex items-center justify-end gap-1">
+                    {net >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    ₹{formatNumber(net)}
+                  </div>
                 </TableCell>
               </TableRow>
             );
@@ -113,7 +115,7 @@ const DrawsPerformanceTable = ({
   );
 };
 
-export default function AccountsManager({ accounts, clients, setAccounts, selectedDate, getDeclaredNumber }: AccountsManagerProps) {
+export default function AccountsManager({ accounts, clients, selectedDate, getDeclaredNumber }: AccountsManagerProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(accounts[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -140,19 +142,20 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
         
         {/* Left Column: Client List */}
         <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
-          <Card className="flex flex-col h-full overflow-hidden">
-            <CardHeader className="p-4 space-y-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search clients..." 
-                  className="h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+          <Card className="flex flex-col h-full overflow-hidden border shadow-sm">
+            <CardHeader className="p-4 space-y-4 border-b bg-muted/20">
+              <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                <Search className="h-3 w-3" />
+                Client Accounts
               </CardTitle>
+              <Input 
+                placeholder="Search clients..." 
+                className="h-9 bg-background"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </CardHeader>
-            <ScrollArea className="flex-1 border-t">
+            <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
                 {filteredAccounts.map((account) => {
                   const balanceValue = account.balance || 0;
@@ -170,15 +173,18 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
                       )}
                     >
                       <div className="flex flex-col min-w-0">
-                        <span className="font-bold truncate text-sm">
+                        <span className="font-black truncate text-sm uppercase tracking-tight">
                           {account.clientName}
                         </span>
-                        <span className={cn(
-                          "text-[10px] uppercase font-mono mt-0.5",
-                          isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-                        )}>
-                          ₹{formatNumber(balanceValue)}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className={cn(
+                            "text-[10px] font-mono",
+                            isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                          )}>
+                            ₹{formatNumber(balanceValue)}
+                          </span>
+                          {isActive && <div className="h-1 w-1 rounded-full bg-primary-foreground animate-pulse" />}
+                        </div>
                       </div>
                       <ChevronRight className={cn(
                         "h-4 w-4 transition-transform",
@@ -195,38 +201,43 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
         {/* Right Column: Details View */}
         <div className="flex-1 min-w-0">
           {selectedAccount ? (
-            <Card className="h-full flex flex-col overflow-hidden">
-              <CardHeader className="border-b bg-muted/5 p-0 overflow-hidden">
+            <Card className="h-full flex flex-col overflow-hidden border shadow-md">
+              <CardHeader className="border-b bg-card p-0 overflow-hidden">
                 <div className="flex flex-col lg:flex-row">
-                  <div className="p-6 border-b lg:border-b-0 lg:border-r bg-muted/10 min-w-[280px]">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tight">
+                  <div className="p-6 border-b lg:border-b-0 lg:border-r bg-muted/5 min-w-[300px]">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter">
                           {selectedAccount.clientName}
                         </CardTitle>
                         {selectedClient?.paymentType === 'pre-paid' && (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase text-[10px]">Pre-paid</Badge>
+                          <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none uppercase text-[9px] font-black px-2 h-5">Pre-paid</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'} • {selectedClient?.comm}% Commission
-                      </p>
+                      <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
+                          <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
+                          <ReceiptText className="h-3 w-3" /> {selectedClient?.comm}% COMM
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-3">
-                    <div className="p-6 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Opening Balance</p>
-                      <p className="text-xl font-bold tabular-nums">₹{formatNumber(selectedAccount.openingBalance)}</p>
+                    <div className="p-5 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
+                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Opening Bal</p>
+                      <p className="text-lg font-black tabular-nums">₹{formatNumber(selectedAccount.openingBalance)}</p>
                     </div>
-                    <div className="p-6 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
-                      <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Total Played</p>
-                      <p className="text-xl font-bold tabular-nums text-amber-500">₹{formatNumber(totalPlayed)}</p>
+                    <div className="p-5 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
+                      <p className="text-[9px] text-amber-500 uppercase font-black tracking-widest mb-1">Vol (Gross)</p>
+                      <p className="text-lg font-black tabular-nums text-amber-500">₹{formatNumber(totalPlayed)}</p>
                     </div>
-                    <div className="p-6 flex flex-col justify-center bg-primary/5 hover:bg-primary/10 transition-colors">
-                      <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-1">Closing Balance</p>
+                    <div className="p-5 flex flex-col justify-center bg-primary/5 hover:bg-primary/10 transition-colors">
+                      <p className="text-[9px] text-primary uppercase font-black tracking-widest mb-1">Closing Bal</p>
                       <p className={cn(
-                        "text-2xl font-black tabular-nums",
+                        "text-xl font-black tabular-nums",
                         selectedAccount.balance >= 0 ? "text-primary" : "text-destructive"
                       )}>
                         ₹{formatNumber(selectedAccount.balance)}
@@ -237,10 +248,10 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
               </CardHeader>
               
               <ScrollArea className="flex-1">
-                <CardContent className="p-6 space-y-8">
+                <CardContent className="p-6 space-y-6">
                   <div className="space-y-4">
-                    <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-primary" /> Daily Draw Performance
+                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-primary" /> Daily Draw Performance
                     </h3>
                     
                     {hasActiveDraws ? (
@@ -251,9 +262,9 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
                         getDeclaredNumber={getDeclaredNumber}
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5">
-                        <CircleDollarSign className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                        <p className="text-muted-foreground font-medium">No transactions recorded for this client today.</p>
+                      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-3xl bg-muted/5">
+                        <CircleDollarSign className="h-14 w-14 text-muted-foreground/20 mb-4" />
+                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">No activity for this client today</p>
                       </div>
                     )}
                   </div>
@@ -261,9 +272,11 @@ export default function AccountsManager({ accounts, clients, setAccounts, select
               </ScrollArea>
             </Card>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed rounded-2xl bg-muted/5">
-              <HandCoins className="h-16 w-16 text-muted-foreground/20 mb-4" />
-              <p className="text-muted-foreground font-bold text-lg">Select a client from the left to view their ledger.</p>
+            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed rounded-3xl bg-muted/5">
+              <div className="bg-muted p-8 rounded-full mb-6">
+                <HandCoins className="h-16 w-16 text-muted-foreground/40" />
+              </div>
+              <p className="text-muted-foreground font-black uppercase tracking-widest text-sm">Select a client to view ledger</p>
             </div>
           )}
         </div>
