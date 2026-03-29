@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
 import { formatNumber } from "@/lib/utils"
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User, Search, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User, Search, ChevronRight, Activity } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
@@ -142,9 +142,8 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
             </CardHeader>
             <ScrollArea className="flex-1 border-t">
               <div className="p-2 space-y-1">
-                {filteredAccounts.map((account, index) => {
+                {filteredAccounts.map((account) => {
                   const balanceValue = account.balance || 0;
-                  const balanceColor = balanceValue >= 0 ? 'text-primary' : 'text-destructive';
                   const isActive = selectedAccountId === account.id;
 
                   return (
@@ -185,56 +184,55 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
         <div className="flex-1 min-w-0">
           {selectedAccount ? (
             <Card className="h-full flex flex-col overflow-hidden">
-              <CardHeader className="border-b bg-muted/10 p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">
-                        {selectedAccount.clientName}
-                      </CardTitle>
-                      {selectedClient?.paymentType === 'pre-paid' && (
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase text-[10px]">Pre-paid</Badge>
-                      )}
+              {/* Systematic Header with Shifted Metrics */}
+              <CardHeader className="border-b bg-muted/5 p-0 overflow-hidden">
+                <div className="flex flex-col lg:flex-row">
+                  {/* Client ID Section */}
+                  <div className="p-6 border-b lg:border-b-0 lg:border-r bg-muted/10 min-w-[280px]">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tight">
+                          {selectedAccount.clientName}
+                        </CardTitle>
+                        {selectedClient?.paymentType === 'pre-paid' && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase text-[10px]">Pre-paid</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'} • {selectedClient?.comm}% Commission
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'} • {selectedClient?.comm}% Commission
-                    </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Net Closing Balance</p>
-                    <p className={cn(
-                      "text-3xl font-black tabular-nums",
-                      selectedAccount.balance >= 0 ? "text-primary" : "text-destructive"
-                    )}>
-                      ₹{formatNumber(selectedAccount.balance)}
-                    </p>
+
+                  {/* Summary Metrics Strip - Systematic Alignment */}
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3">
+                    <div className="p-6 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Opening Balance</p>
+                      <p className="text-xl font-bold tabular-nums">₹{formatNumber(selectedAccount.openingBalance)}</p>
+                    </div>
+                    <div className="p-6 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
+                      <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Total Played</p>
+                      <p className="text-xl font-bold tabular-nums text-amber-500">₹{formatNumber(totalPlayed)}</p>
+                    </div>
+                    <div className="p-6 flex flex-col justify-center bg-primary/5 hover:bg-primary/10 transition-colors">
+                      <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-1">Closing Balance</p>
+                      <p className={cn(
+                        "text-2xl font-black tabular-nums",
+                        selectedAccount.balance >= 0 ? "text-primary" : "text-destructive"
+                      )}>
+                        ₹{formatNumber(selectedAccount.balance)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
               
               <ScrollArea className="flex-1">
                 <CardContent className="p-6 space-y-8">
-                  
-                  {/* Summary Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-muted/30 rounded-xl border-2 border-dashed">
-                      <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Opening</p>
-                      <p className="text-xl font-bold">₹{formatNumber(selectedAccount.openingBalance)}</p>
-                    </div>
-                    <div className="p-4 bg-muted/30 rounded-xl border-2 border-dashed">
-                      <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Total Played</p>
-                      <p className="text-xl font-bold text-amber-500">₹{formatNumber(totalPlayed)}</p>
-                    </div>
-                    <div className="p-4 bg-primary/10 rounded-xl border-2 border-primary/20">
-                      <p className="text-xs text-primary uppercase font-bold mb-1">Closing</p>
-                      <p className="text-xl font-bold text-primary">₹{formatNumber(selectedAccount.balance)}</p>
-                    </div>
-                  </div>
-
                   {/* Draw Breakdown */}
                   <div className="space-y-4">
                     <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-primary" /> Daily Draw Performance
+                      <Activity className="h-5 w-5 text-primary" /> Daily Draw Performance
                     </h3>
                     
                     {hasActiveDraws ? (
