@@ -1,21 +1,18 @@
 
 "use client"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
-import { useToast } from "@/hooks/use-toast"
 import { formatNumber } from "@/lib/utils"
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User, Search, ChevronRight } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
-
+import { cn } from "@/lib/utils"
 
 export type DrawData = {
   totalAmount: number;
@@ -53,8 +50,8 @@ const DrawDetailsPanel = ({
   const totalAmount = drawData?.totalAmount || 0;
   if (totalAmount === 0) {
     return (
-      <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono border text-center text-muted-foreground italic">
-        No entries for {drawName}.
+      <div className="p-8 bg-muted/20 rounded-xl text-sm font-medium border-2 border-dashed text-center text-muted-foreground italic">
+        No entries recorded for {drawName} today.
       </div>
     );
   }
@@ -68,121 +65,226 @@ const DrawDetailsPanel = ({
   const passingTotal = passingAmount * passingMultiplier;
 
   const finalTotal = afterCommission - passingTotal;
-  const finalTotalColor = finalTotal < 0 ? 'text-red-500' : 'text-green-400';
+  const finalTotalColor = finalTotal < 0 ? 'text-destructive' : 'text-primary';
   
   return (
-    <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono border">
-      <h4 className="font-bold text-center text-base mb-2 text-primary">{drawName}</h4>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        <span className="text-foreground/80">Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
-        <span className="text-foreground/80">{clientCommissionPercent*100}% Comm</span><span className="text-right font-semibold">: ₹{formatNumber(commission)}</span>
-        <span className="text-foreground/80">After Comm</span><span className="text-right font-semibold">: ₹{formatNumber(afterCommission)}</span>
-        <span className="text-foreground/80">Passing</span>
-        <span className="text-right font-semibold">
-          : {passingAmount > 0 ? `${formatNumber(passingAmount)} = ` : ''}₹{formatNumber(passingTotal)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
+    <div className="p-6 bg-card rounded-xl text-sm border shadow-sm">
+      <h4 className="font-bold text-center text-lg mb-4 text-primary">{drawName} Draw Summary</h4>
+      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+        <span className="text-muted-foreground">Gross Amount</span>
+        <span className="text-right font-bold text-base">₹{formatNumber(totalAmount)}</span>
+        
+        <span className="text-muted-foreground">Commission ({clientCommissionPercent*100}%)</span>
+        <span className="text-right font-semibold text-destructive">- ₹{formatNumber(commission)}</span>
+        
+        <span className="text-muted-foreground">Net After Commission</span>
+        <span className="text-right font-bold">₹{formatNumber(afterCommission)}</span>
+        
+        <Separator className="col-span-2 my-2" />
+        
+        <span className="text-muted-foreground flex flex-col">
+          <span>Passing Reward</span>
+          {passingAmount > 0 && <span className="text-[10px] text-primary">Points: {formatNumber(passingAmount)} × {passingMultiplier}</span>}
+        </span>
+        <span className="text-right font-semibold text-destructive">
+          - ₹{formatNumber(passingTotal)}
         </span>
       </div>
-      <Separator className="my-2 bg-border/50" />
-      <div className="grid grid-cols-2 gap-x-4">
-        <span className="font-bold text-base">Final</span>
-        <span className={`text-right font-bold text-base ${finalTotalColor}`}>: ₹{formatNumber(finalTotal)}</span>
+      <Separator className="my-4" />
+      <div className="flex justify-between items-center pt-2">
+        <span className="font-bold text-lg uppercase tracking-tight">Daily Net Profit</span>
+        <span className={`text-right font-black text-2xl tabular-nums ${finalTotalColor}`}>
+          ₹{formatNumber(finalTotal)}
+        </span>
       </div>
     </div>
   )
 }
 
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(accounts[0]?.id || null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(acc => 
+      acc.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [accounts, searchQuery]);
+
+  const selectedAccount = useMemo(() => {
+    return accounts.find(acc => acc.id === selectedAccountId);
+  }, [accounts, selectedAccountId]);
+
+  const selectedClient = useMemo(() => {
+    return clients.find(c => c.id === selectedAccountId);
+  }, [clients, selectedAccountId]);
+
+  const totalPlayed = selectedAccount?.draws ? Object.values(selectedAccount.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
+  const hasActiveDraws = selectedAccount?.draws && Object.values(selectedAccount.draws).some(d => d.totalAmount > 0);
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle>Manage Account Ledger</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 space-y-6 overflow-y-auto p-2 sm:p-6">
-        <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2 px-2">
-                <HandCoins className="h-5 w-5" /> Client Ledgers
-            </h3>
-            <Accordion type="single" collapsible className="w-full space-y-2">
-              {accounts.map((account, index) => {
-                const client = clients.find(c => c.id === account.id);
-                const balanceValue = account.balance || 0;
-                const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
+    <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
+      <CardContent className="flex-1 p-0 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
+        
+        {/* Left Column: Client List */}
+        <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
+          <Card className="flex flex-col h-full overflow-hidden">
+            <CardHeader className="p-4 space-y-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search clients..." 
+                  className="h-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </CardTitle>
+            </CardHeader>
+            <ScrollArea className="flex-1 border-t">
+              <div className="p-2 space-y-1">
+                {filteredAccounts.map((account, index) => {
+                  const balanceValue = account.balance || 0;
+                  const balanceColor = balanceValue >= 0 ? 'text-primary' : 'text-destructive';
+                  const isActive = selectedAccountId === account.id;
 
-                const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
-                
-                const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
-
-                return (
-                  <AccordionItem value={`item-${index}`} key={account.id} className="border rounded-lg px-2 hover:bg-muted/30 transition-colors">
-                    <AccordionTrigger className="hover:no-underline py-4">
-                        <div className="flex items-center justify-between w-full pr-4 gap-2">
-                            <div className="flex items-center gap-3 overflow-hidden text-left">
-                                <span className="text-muted-foreground w-6 shrink-0 text-xs font-mono">{index + 1}.</span>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 overflow-hidden">
-                                    <span className="font-bold truncate text-base">{account.clientName}</span>
-                                    <div className="flex items-center gap-2">
-                                        {client?.paymentType === 'pre-paid' && (
-                                            <Badge variant="outline" className="text-[10px] h-4 px-1 uppercase bg-amber-500/10 text-amber-500 border-amber-500/20">Pre-paid</Badge>
-                                        )}
-                                        <span className="text-[10px] text-muted-foreground hidden sm:inline uppercase tracking-wider">
-                                            {client?.comm}% Comm
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="shrink-0 text-right">
-                                <span className={`font-black text-base sm:text-lg tabular-nums ${balanceColor}`}>
-                                    ₹{formatNumber(balanceValue)}
-                                </span>
-                            </div>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="p-2 sm:p-4 bg-card rounded-lg space-y-4">
-                        
-                        <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <span className="text-foreground/80 flex items-center gap-1.5"><User className="h-3 w-3" /> User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-                            <span className="text-foreground/80">Opening Balance</span><span className="text-right font-semibold">: ₹{formatNumber(account.openingBalance)}</span>
-                            <span className="text-foreground/80">Total Played Today</span><span className="text-right font-semibold text-amber-500">: ₹{formatNumber(totalPlayed)}</span>
-                            <Separator className="my-1 col-span-2 bg-border/50" />
-                            <span className="text-foreground/80 font-bold">Closing Balance</span><span className={`text-right font-bold ${balanceValue < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(balanceValue)}</span>
-                          </div>
-                        </div>
-                        
-                        {hasActiveDraws ? (
-                          <Tabs defaultValue={draws[0]} className="w-full">
-                            <ScrollArea>
-                                <TabsList className="grid w-full grid-cols-6 h-auto">
-                                  {draws.map(draw => (
-                                    <TabsTrigger key={draw} value={draw} className="text-[10px] sm:text-xs px-1 py-2">
-                                      {draw}
-                                    </TabsTrigger>
-                                  ))}
-                                </TabsList>
-                            </ScrollArea>
-                            {draws.map(draw => (
-                              <TabsContent key={draw} value={draw}>
-                                <DrawDetailsPanel 
-                                  client={client}
-                                  account={account}
-                                  drawName={draw} 
-                                  drawData={account.draws ? account.draws[draw] : undefined}
-                                />
-                              </TabsContent>
-                            ))}
-                          </Tabs>
-                        ) : (
-                          <div className="text-center text-muted-foreground italic py-8 border rounded-lg bg-muted/10">
-                            No entries for this client today.
-                          </div>
-                        )}
+                  return (
+                    <button
+                      key={account.id}
+                      onClick={() => setSelectedAccountId(account.id)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg transition-all flex items-center justify-between group",
+                        isActive 
+                          ? "bg-primary text-primary-foreground shadow-md" 
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold truncate text-sm">
+                          {account.clientName}
+                        </span>
+                        <span className={cn(
+                          "text-[10px] uppercase font-mono mt-0.5",
+                          isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                        )}>
+                          ₹{formatNumber(balanceValue)}
+                        </span>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )
-              })}
-            </Accordion>
+                      <ChevronRight className={cn(
+                        "h-4 w-4 transition-transform",
+                        isActive ? "translate-x-1" : "opacity-0 group-hover:opacity-100"
+                      )} />
+                    </button>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+          </Card>
+        </div>
+
+        {/* Right Column: Details View */}
+        <div className="flex-1 min-w-0">
+          {selectedAccount ? (
+            <Card className="h-full flex flex-col overflow-hidden">
+              <CardHeader className="border-b bg-muted/10 p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">
+                        {selectedAccount.clientName}
+                      </CardTitle>
+                      {selectedClient?.paymentType === 'pre-paid' && (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase text-[10px]">Pre-paid</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'} • {selectedClient?.comm}% Commission
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Net Closing Balance</p>
+                    <p className={cn(
+                      "text-3xl font-black tabular-nums",
+                      selectedAccount.balance >= 0 ? "text-primary" : "text-destructive"
+                    )}>
+                      ₹{formatNumber(selectedAccount.balance)}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <ScrollArea className="flex-1">
+                <CardContent className="p-6 space-y-8">
+                  
+                  {/* Summary Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-muted/30 rounded-xl border-2 border-dashed">
+                      <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Opening</p>
+                      <p className="text-xl font-bold">₹{formatNumber(selectedAccount.openingBalance)}</p>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-xl border-2 border-dashed">
+                      <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Total Played</p>
+                      <p className="text-xl font-bold text-amber-500">₹{formatNumber(totalPlayed)}</p>
+                    </div>
+                    <div className="p-4 bg-primary/10 rounded-xl border-2 border-primary/20">
+                      <p className="text-xs text-primary uppercase font-bold mb-1">Closing</p>
+                      <p className="text-xl font-bold text-primary">₹{formatNumber(selectedAccount.balance)}</p>
+                    </div>
+                  </div>
+
+                  {/* Draw Breakdown */}
+                  <div className="space-y-4">
+                    <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-primary" /> Daily Draw Performance
+                    </h3>
+                    
+                    {hasActiveDraws ? (
+                      <Tabs defaultValue={draws.find(d => selectedAccount.draws?.[d]?.totalAmount ?? 0 > 0) || draws[0]} className="w-full">
+                        <ScrollArea className="w-full pb-2">
+                          <TabsList className="inline-flex w-auto bg-muted/50 p-1">
+                            {draws.map(draw => {
+                              const amount = selectedAccount.draws?.[draw]?.totalAmount || 0;
+                              return (
+                                <TabsTrigger 
+                                  key={draw} 
+                                  value={draw} 
+                                  className={cn(
+                                    "px-4 py-2 text-xs font-bold",
+                                    amount > 0 && "text-primary"
+                                  )}
+                                >
+                                  {draw} {amount > 0 && `(₹${formatNumber(amount)})`}
+                                </TabsTrigger>
+                              );
+                            })}
+                          </TabsList>
+                        </ScrollArea>
+                        {draws.map(draw => (
+                          <TabsContent key={draw} value={draw} className="mt-4">
+                            <DrawDetailsPanel 
+                              client={selectedClient}
+                              account={selectedAccount}
+                              drawName={draw} 
+                              drawData={selectedAccount.draws ? selectedAccount.draws[draw] : undefined}
+                            />
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5">
+                        <CircleDollarSign className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                        <p className="text-muted-foreground font-medium">No transactions recorded for this client today.</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </ScrollArea>
+            </Card>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed rounded-2xl bg-muted/5">
+              <HandCoins className="h-16 w-16 text-muted-foreground/20 mb-4" />
+              <p className="text-muted-foreground font-bold text-lg">Select a client from the left to view their ledger.</p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
