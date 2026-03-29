@@ -78,7 +78,7 @@ const DrawsPerformanceTable = ({
                   <div className="flex flex-col gap-2">
                     <span className="text-primary text-base font-black leading-none">{drawName}</span>
                     {winningNumber && (
-                      <Badge variant="secondary" className="w-fit font-black border-2 border-primary/30 text-primary bg-primary/5 text-sm px-2.5 h-8 flex items-center justify-center min-w-[3rem]">
+                      <Badge variant="secondary" className="w-fit font-black border-2 border-primary/30 text-primary bg-primary/5 text-lg h-10 px-3 flex items-center justify-center min-w-[3.5rem]">
                         Result: {winningNumber}
                       </Badge>
                     )}
@@ -153,6 +153,7 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                 {filteredAccounts.map((account) => {
                   const balanceValue = account.balance || 0;
                   const isActive = selectedAccountId === account.id;
+                  const isPositive = balanceValue >= 0;
 
                   return (
                     <button
@@ -166,15 +167,18 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                       )}
                     >
                       <div className="flex flex-col min-w-0">
-                        <span className="font-black truncate text-sm uppercase tracking-tight">
+                        <span className={cn(
+                          "font-black truncate text-sm uppercase tracking-tight",
+                          !isActive && (isPositive ? "text-blue-500" : "text-destructive")
+                        )}>
                           {account.clientName}
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                            <span className={cn(
                             "text-[10px] font-mono",
-                            isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                            isActive ? "text-primary-foreground/80" : (isPositive ? "text-blue-600" : "text-destructive")
                           )}>
-                            ₹{formatNumber(balanceValue)}
+                            {isPositive ? '++ ' : '-- '}₹{formatNumber(Math.abs(balanceValue))}
                           </span>
                           {isActive && <div className="h-1 w-1 rounded-full bg-primary-foreground animate-pulse" />}
                         </div>
