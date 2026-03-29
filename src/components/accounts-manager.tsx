@@ -13,6 +13,7 @@ import { formatNumber } from "@/lib/utils"
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User, Search, ChevronRight, Activity } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 
 export type DrawData = {
   totalAmount: number;
@@ -31,77 +32,88 @@ type AccountsManagerProps = {
   accounts: Account[];
   clients: Client[];
   setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
+  selectedDate: Date | undefined;
+  getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
 };
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-const DrawDetailsPanel = ({
+const DrawsPerformanceTable = ({
   client,
   account,
-  drawName,
-  drawData,
+  selectedDate,
+  getDeclaredNumber,
 }: {
   client: Client | undefined;
   account: Account;
-  drawName: string;
-  drawData: DrawData | undefined;
+  selectedDate: Date | undefined;
+  getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
 }) => {
+  const clientCommPercent = client ? parseFloat(client.comm) / 100 : 0.10;
 
-  const totalAmount = drawData?.totalAmount || 0;
-  if (totalAmount === 0) {
-    return (
-      <div className="p-8 bg-muted/20 rounded-xl text-sm font-medium border-2 border-dashed text-center text-muted-foreground italic">
-        No entries recorded for {drawName} today.
-      </div>
-    );
-  }
-
-  const clientCommissionPercent = client ? parseFloat(client.comm) / 100 : 0.10;
-  const commission = totalAmount * clientCommissionPercent;
-  const afterCommission = totalAmount - commission;
-  
-  const passingAmount = drawData?.passingAmount || 0;
-  const passingMultiplier = client ? parseFloat(client.pair) : 90;
-  const passingTotal = passingAmount * passingMultiplier;
-
-  const finalTotal = afterCommission - passingTotal;
-  const finalTotalColor = finalTotal < 0 ? 'text-destructive' : 'text-primary';
-  
   return (
-    <div className="p-6 bg-card rounded-xl text-sm border shadow-sm">
-      <h4 className="font-bold text-center text-lg mb-4 text-primary">{drawName} Draw Summary</h4>
-      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-        <span className="text-muted-foreground">Gross Amount</span>
-        <span className="text-right font-bold text-base">₹{formatNumber(totalAmount)}</span>
-        
-        <span className="text-muted-foreground">Commission ({clientCommissionPercent*100}%)</span>
-        <span className="text-right font-semibold text-destructive">- ₹{formatNumber(commission)}</span>
-        
-        <span className="text-muted-foreground">Net After Commission</span>
-        <span className="text-right font-bold">₹{formatNumber(afterCommission)}</span>
-        
-        <Separator className="col-span-2 my-2" />
-        
-        <span className="text-muted-foreground flex flex-col">
-          <span>Passing Reward</span>
-          {passingAmount > 0 && <span className="text-[10px] text-primary">Points: {formatNumber(passingAmount)} × {passingMultiplier}</span>}
-        </span>
-        <span className="text-right font-semibold text-destructive">
-          - ₹{formatNumber(passingTotal)}
-        </span>
-      </div>
-      <Separator className="my-4" />
-      <div className="flex justify-between items-center pt-2">
-        <span className="font-bold text-lg uppercase tracking-tight">Daily Net Profit</span>
-        <span className={`text-right font-black text-2xl tabular-nums ${finalTotalColor}`}>
-          ₹{formatNumber(finalTotal)}
-        </span>
-      </div>
-    </div>
-  )
-}
+    <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="w-[180px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Commission</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Net</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {draws.map((drawName) => {
+            const drawData = account.draws?.[drawName];
+            const totalAmount = drawData?.totalAmount || 0;
+            const passingAmount = drawData?.passingAmount || 0;
+            const winningNumber = getDeclaredNumber(drawName, selectedDate);
+            
+            const commission = totalAmount * clientCommPercent;
+            const passingMultiplier = client ? parseFloat(client.pair) : 90;
+            const passingTotal = passingAmount * passingMultiplier;
+            const net = (totalAmount - commission) - passingTotal;
 
-export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
+            if (totalAmount === 0) return null;
+
+            return (
+              <TableRow key={drawName} className="hover:bg-muted/30 transition-colors">
+                <TableCell className="font-bold py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">{drawName}</span>
+                    {winningNumber && (
+                      <Badge variant="outline" className="font-black border-primary/20 text-primary bg-primary/5">
+                        ({winningNumber})
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-mono text-muted-foreground">
+                  {passingAmount > 0 ? formatNumber(passingAmount) : '-'}
+                </TableCell>
+                <TableCell className="text-right font-bold tabular-nums">
+                  ₹{formatNumber(totalAmount)}
+                </TableCell>
+                <TableCell className="text-right font-mono text-destructive">
+                  -₹{formatNumber(commission)}
+                </TableCell>
+                <TableCell className={cn(
+                  "text-right font-black tabular-nums",
+                  net >= 0 ? "text-primary" : "text-destructive"
+                )}>
+                  ₹{formatNumber(net)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
+
+export default function AccountsManager({ accounts, clients, setAccounts, selectedDate, getDeclaredNumber }: AccountsManagerProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(accounts[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -184,10 +196,8 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
         <div className="flex-1 min-w-0">
           {selectedAccount ? (
             <Card className="h-full flex flex-col overflow-hidden">
-              {/* Systematic Header with Shifted Metrics */}
               <CardHeader className="border-b bg-muted/5 p-0 overflow-hidden">
                 <div className="flex flex-col lg:flex-row">
-                  {/* Client ID Section */}
                   <div className="p-6 border-b lg:border-b-0 lg:border-r bg-muted/10 min-w-[280px]">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -204,7 +214,6 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                     </div>
                   </div>
 
-                  {/* Summary Metrics Strip - Systematic Alignment */}
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-3">
                     <div className="p-6 flex flex-col justify-center border-b sm:border-b-0 sm:border-r hover:bg-muted/5 transition-colors">
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Opening Balance</p>
@@ -229,44 +238,18 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
               
               <ScrollArea className="flex-1">
                 <CardContent className="p-6 space-y-8">
-                  {/* Draw Breakdown */}
                   <div className="space-y-4">
                     <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
                       <Activity className="h-5 w-5 text-primary" /> Daily Draw Performance
                     </h3>
                     
                     {hasActiveDraws ? (
-                      <Tabs defaultValue={draws.find(d => selectedAccount.draws?.[d]?.totalAmount ?? 0 > 0) || draws[0]} className="w-full">
-                        <ScrollArea className="w-full pb-2">
-                          <TabsList className="inline-flex w-auto bg-muted/50 p-1">
-                            {draws.map(draw => {
-                              const amount = selectedAccount.draws?.[draw]?.totalAmount || 0;
-                              return (
-                                <TabsTrigger 
-                                  key={draw} 
-                                  value={draw} 
-                                  className={cn(
-                                    "px-4 py-2 text-xs font-bold",
-                                    amount > 0 && "text-primary"
-                                  )}
-                                >
-                                  {draw} {amount > 0 && `(₹${formatNumber(amount)})`}
-                                </TabsTrigger>
-                              );
-                            })}
-                          </TabsList>
-                        </ScrollArea>
-                        {draws.map(draw => (
-                          <TabsContent key={draw} value={draw} className="mt-4">
-                            <DrawDetailsPanel 
-                              client={selectedClient}
-                              account={selectedAccount}
-                              drawName={draw} 
-                              drawData={selectedAccount.draws ? selectedAccount.draws[draw] : undefined}
-                            />
-                          </TabsContent>
-                        ))}
-                      </Tabs>
+                      <DrawsPerformanceTable 
+                        client={selectedClient}
+                        account={selectedAccount}
+                        selectedDate={selectedDate}
+                        getDeclaredNumber={getDeclaredNumber}
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5">
                         <CircleDollarSign className="h-12 w-12 text-muted-foreground/30 mb-4" />

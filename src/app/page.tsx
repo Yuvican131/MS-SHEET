@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -565,7 +564,13 @@ export default function Home() {
             />
           </TabsContent>
           <TabsContent value="accounts">
-            <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
+            <AccountsManager 
+              accounts={accounts} 
+              clients={clients} 
+              setAccounts={setAccounts} 
+              selectedDate={selectedDate}
+              getDeclaredNumber={getDeclaredNumber}
+            />
           </TabsContent>
            <TabsContent value="ledger-record">
             <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
@@ -622,5 +627,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
