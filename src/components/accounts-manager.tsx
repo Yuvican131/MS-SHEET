@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import type { Client } from "./clients-manager"
+import { Badge } from "@/components/ui/badge"
+import type { Client } from "@/hooks/useClients"
 import { useToast } from "@/hooks/use-toast"
 import { formatNumber } from "@/lib/utils"
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, User } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 
@@ -96,12 +97,12 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
       <CardHeader>
         <CardTitle>Manage Account Ledger</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 space-y-6 overflow-y-auto">
+      <CardContent className="flex-1 space-y-6 overflow-y-auto p-2 sm:p-6">
         <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
+            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2 px-2">
                 <HandCoins className="h-5 w-5" /> Client Ledgers
             </h3>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full space-y-2">
               {accounts.map((account, index) => {
                 const client = clients.find(c => c.id === account.id);
                 const balanceValue = account.balance || 0;
@@ -112,21 +113,38 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                 const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
 
                 return (
-                  <AccordionItem value={`item-${index}`} key={account.id}>
-                    <AccordionTrigger>
-                        <div className="flex justify-between w-full pr-4">
-                            <span>{index + 1}. {account.clientName}</span>
-                            <span className={`font-bold ${balanceColor}`}>₹{formatNumber(balanceValue)}</span>
+                  <AccordionItem value={`item-${index}`} key={account.id} className="border rounded-lg px-2 hover:bg-muted/30 transition-colors">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                        <div className="flex items-center justify-between w-full pr-4 gap-2">
+                            <div className="flex items-center gap-3 overflow-hidden text-left">
+                                <span className="text-muted-foreground w-6 shrink-0 text-xs font-mono">{index + 1}.</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 overflow-hidden">
+                                    <span className="font-bold truncate text-base">{account.clientName}</span>
+                                    <div className="flex items-center gap-2">
+                                        {client?.paymentType === 'pre-paid' && (
+                                            <Badge variant="outline" className="text-[10px] h-4 px-1 uppercase bg-amber-500/10 text-amber-500 border-amber-500/20">Pre-paid</Badge>
+                                        )}
+                                        <span className="text-[10px] text-muted-foreground hidden sm:inline uppercase tracking-wider">
+                                            {client?.comm}% Comm
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                                <span className={`font-black text-base sm:text-lg tabular-nums ${balanceColor}`}>
+                                    ₹{formatNumber(balanceValue)}
+                                </span>
+                            </div>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="p-4 bg-card rounded-lg space-y-4">
+                      <div className="p-2 sm:p-4 bg-card rounded-lg space-y-4">
                         
                         <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
+                            <span className="text-foreground/80 flex items-center gap-1.5"><User className="h-3 w-3" /> User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
                             <span className="text-foreground/80">Opening Balance</span><span className="text-right font-semibold">: ₹{formatNumber(account.openingBalance)}</span>
-                            <span className="text-foreground/80">Total Played Today</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
+                            <span className="text-foreground/80">Total Played Today</span><span className="text-right font-semibold text-amber-500">: ₹{formatNumber(totalPlayed)}</span>
                             <Separator className="my-1 col-span-2 bg-border/50" />
                             <span className="text-foreground/80 font-bold">Closing Balance</span><span className={`text-right font-bold ${balanceValue < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(balanceValue)}</span>
                           </div>
@@ -137,7 +155,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                             <ScrollArea>
                                 <TabsList className="grid w-full grid-cols-6 h-auto">
                                   {draws.map(draw => (
-                                    <TabsTrigger key={draw} value={draw} className="text-xs px-1">
+                                    <TabsTrigger key={draw} value={draw} className="text-[10px] sm:text-xs px-1 py-2">
                                       {draw}
                                     </TabsTrigger>
                                   ))}
@@ -155,7 +173,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                             ))}
                           </Tabs>
                         ) : (
-                          <div className="text-center text-muted-foreground italic py-8">
+                          <div className="text-center text-muted-foreground italic py-8 border rounded-lg bg-muted/10">
                             No entries for this client today.
                           </div>
                         )}
@@ -170,5 +188,3 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
-
-    
