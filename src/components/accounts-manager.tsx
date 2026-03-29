@@ -53,7 +53,7 @@ const DrawsPerformanceTable = ({
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="w-[150px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
+            <TableHead className="w-[180px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total Played</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing Pts</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Draw Net</TableHead>
@@ -75,27 +75,27 @@ const DrawsPerformanceTable = ({
             return (
               <TableRow key={drawName} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-bold py-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-primary text-sm font-black">{drawName}</span>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-primary text-base font-black leading-none">{drawName}</span>
                     {winningNumber && (
-                      <Badge variant="secondary" className="w-fit font-black border-primary/20 text-primary bg-primary/10 text-[10px] px-1.5 h-5">
+                      <Badge variant="secondary" className="w-fit font-black border-2 border-primary/30 text-primary bg-primary/5 text-sm px-2.5 h-8 flex items-center justify-center min-w-[3rem]">
                         Result: {winningNumber}
                       </Badge>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-bold tabular-nums">
+                <TableCell className="text-right font-bold tabular-nums text-sm md:text-base">
                   ₹{formatNumber(totalAmount)}
                 </TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">
+                <TableCell className="text-right font-mono text-muted-foreground text-xs md:text-sm">
                   {passingAmount > 0 ? `${passingAmount} pts` : '0 pts'}
                 </TableCell>
                 <TableCell className={cn(
-                  "text-right font-black tabular-nums",
+                  "text-right font-black tabular-nums text-sm md:text-base",
                   net >= 0 ? "text-primary" : "text-destructive"
                 )}>
                   <div className="flex items-center justify-end gap-1">
-                    {net >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {net >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                     ₹{formatNumber(net)}
                   </div>
                 </TableCell>
