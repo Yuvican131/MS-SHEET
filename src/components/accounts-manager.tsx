@@ -55,8 +55,7 @@ const DrawsPerformanceTable = ({
           <TableRow>
             <TableHead className="w-[150px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total Played</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Comm ({client?.comm || 0}%)</TableHead>
-            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Winnings</TableHead>
+            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing Pts</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Draw Net</TableHead>
           </TableRow>
         </TableHeader>
@@ -88,14 +87,8 @@ const DrawsPerformanceTable = ({
                 <TableCell className="text-right font-bold tabular-nums">
                   ₹{formatNumber(totalAmount)}
                 </TableCell>
-                <TableCell className="text-right font-mono text-destructive text-xs">
-                  -₹{formatNumber(commission)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-destructive text-xs">
-                   <div className="flex flex-col items-end">
-                      <span>-₹{formatNumber(winnings)}</span>
-                      {passingAmount > 0 && <span className="text-[9px] text-muted-foreground">({passingAmount} pts)</span>}
-                   </div>
+                <TableCell className="text-right font-mono text-muted-foreground">
+                  {passingAmount > 0 ? `${passingAmount} pts` : '0 pts'}
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-black tabular-nums",
