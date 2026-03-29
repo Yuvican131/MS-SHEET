@@ -153,7 +153,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                 {filteredAccounts.map((account) => {
                   const balanceValue = account.balance || 0;
                   const isActive = selectedAccountId === account.id;
-                  const isPositive = balanceValue >= 0;
 
                   return (
                     <button
@@ -167,18 +166,15 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                       )}
                     >
                       <div className="flex flex-col min-w-0">
-                        <span className={cn(
-                          "font-black truncate text-sm uppercase tracking-tight",
-                          !isActive && (isPositive ? "text-blue-500" : "text-destructive")
-                        )}>
+                        <span className="font-black truncate text-sm uppercase tracking-tight">
                           {account.clientName}
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                            <span className={cn(
                             "text-[10px] font-mono",
-                            isActive ? "text-primary-foreground/80" : (isPositive ? "text-blue-600" : "text-destructive")
+                            isActive ? "text-primary-foreground/80" : (balanceValue >= 0 ? "text-primary" : "text-destructive")
                           )}>
-                            {isPositive ? '++ ' : '-- '}₹{formatNumber(Math.abs(balanceValue))}
+                            ₹{formatNumber(balanceValue)}
                           </span>
                           {isActive && <div className="h-1 w-1 rounded-full bg-primary-foreground animate-pulse" />}
                         </div>
