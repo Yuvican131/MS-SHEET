@@ -58,7 +58,7 @@ const DrawsPerformanceTable = ({
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="w-[180px] font-black uppercase text-[10px] tracking-widest">Draw</TableHead>
+            <TableHead className="w-[200px] font-black uppercase text-[10px] tracking-widest">Draw & Result</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total Played</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing Pts</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Draw Net</TableHead>
@@ -79,12 +79,12 @@ const DrawsPerformanceTable = ({
 
             return (
               <TableRow key={drawName} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-bold py-4">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-primary text-base font-black leading-none">{drawName}</span>
+                <TableCell className="font-bold py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-primary text-lg font-black leading-none min-w-[3rem]">{drawName}</span>
                     {winningNumber && (
-                      <Badge variant="secondary" className="w-fit font-black border-2 border-primary/30 text-primary bg-primary/5 text-lg h-10 px-3 flex items-center justify-center min-w-[3.5rem]">
-                        Result: {winningNumber}
+                      <Badge variant="secondary" className="font-black border-2 border-primary/30 text-primary bg-primary/5 text-lg h-9 px-3 flex items-center justify-center min-w-[3rem]">
+                        {winningNumber}
                       </Badge>
                     )}
                   </div>
@@ -147,7 +147,7 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
       <CardContent className="flex-1 p-0 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
         
         {/* Left Column: Client List */}
-        <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
+        <div className="w-full lg:w-96 flex flex-col gap-4 flex-shrink-0">
           <Card className="flex flex-col h-full overflow-hidden border shadow-sm">
             <CardHeader className="p-4 space-y-4 border-b bg-muted/20">
               <div className="flex items-center justify-between">
@@ -209,28 +209,25 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                       key={account.id}
                       onClick={() => setSelectedAccountId(account.id)}
                       className={cn(
-                        "w-full text-left p-3 rounded-lg transition-all flex items-center justify-between group",
+                        "w-full text-left p-3 rounded-lg transition-all flex items-center group",
                         isActive 
                           ? "bg-primary text-primary-foreground shadow-md" 
                           : "hover:bg-muted"
                       )}
                     >
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-black truncate text-sm uppercase tracking-tight">
+                      <div className="flex items-center justify-between w-full min-w-0 pr-2">
+                        <span className="font-black truncate text-sm uppercase tracking-tight flex-1">
                           {account.clientName}
                         </span>
-                        <div className="flex items-center gap-2 mt-1">
-                           <span className={cn(
-                            "text-[10px] font-mono",
-                            isActive ? "text-primary-foreground/80" : (balanceValue >= 0 ? "text-primary" : "text-destructive")
-                          )}>
-                            ₹{formatNumber(balanceValue)}
-                          </span>
-                          {isActive && <div className="h-1 w-1 rounded-full bg-primary-foreground animate-pulse" />}
-                        </div>
+                        <span className={cn(
+                          "text-sm font-black tabular-nums whitespace-nowrap ml-2",
+                          isActive ? "text-primary-foreground" : (balanceValue >= 0 ? "text-primary" : "text-destructive")
+                        )}>
+                          ₹{formatNumber(balanceValue)}
+                        </span>
                       </div>
                       <ChevronRight className={cn(
-                        "h-4 w-4 transition-transform",
+                        "h-4 w-4 shrink-0 transition-transform",
                         isActive ? "translate-x-1" : "opacity-0 group-hover:opacity-100"
                       )} />
                     </button>
