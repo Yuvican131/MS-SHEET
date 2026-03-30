@@ -123,7 +123,26 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMultiText(e.target.value);
+        let val = e.target.value;
+        
+        // Auto-comma logic: if the user is typing (length increasing) 
+        // and they type two digits, append a comma automatically in the numbers section
+        if (val.length > multiText.length) {
+            // We only auto-format the part before any '=' sign
+            const parts = val.split('=');
+            if (parts.length === 1) {
+                const textBeforeEqual = parts[0];
+                const segments = textBeforeEqual.split(',');
+                const lastSegment = segments[segments.length - 1];
+                
+                // If the last segment is exactly 2 digits, append a comma
+                if (lastSegment.length === 2 && /^\d+$/.test(lastSegment)) {
+                    val += ",";
+                }
+            }
+        }
+        
+        setMultiText(val);
     };
     
     const handleMultiTextApply = () => {
@@ -137,14 +156,11 @@ export function DataEntryControls({
         let totalForCheck = 0;
         let foundAny = false;
 
-        // Split input into lines for systematic processing
         const lines = multiText.split(/[\n\r]+/);
         
         lines.forEach(line => {
             if (!line.trim()) return;
 
-            // Pattern Matcher for formats: "01,02=100", "01 100", "01(100)", "01*50", "01x50", "01:50", "01-50"
-            // We look for sequences of numbers separated by non-digit characters followed by an amount
             const entryPattern = /((?:\d{1,3}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
             let match;
             let lineProcessed = false;
@@ -174,7 +190,6 @@ export function DataEntryControls({
                 }
             }
 
-            // Fallback for simple space-separated sequence on the line: "01 100 02 200"
             if (!lineProcessed) {
                 const tokens = line.trim().split(/[\s,]+/);
                 for (let i = 0; i < tokens.length; i += 2) {
@@ -203,7 +218,7 @@ export function DataEntryControls({
         if (!foundAny) {
             toast({ 
                 title: "Format Error", 
-                description: "Use formats like 01=100, 01 100, or 01,02(100)", 
+                description: "Use formats like 01=100, 01 100, or 01,02=500", 
                 variant: "destructive" 
             });
             return;
@@ -213,7 +228,6 @@ export function DataEntryControls({
 
         onDataUpdate(updates, multiText);
         setMultiText("");
-        // Return focus to multi-text for next entry
         setTimeout(() => multiTextRef.current?.focus(), 0);
     };
     
@@ -358,10 +372,22 @@ export function DataEntryControls({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
             if (from === 'multiText') {
-                // If Shift+Enter, allow new line. If just Enter, APPLY the data.
                 if (!e.shiftKey) {
                     e.preventDefault();
-                    handleMultiTextApply();
+                    
+                    // Smart Enter Behavior:
+                    // 1. If text has '=', Apply the entry
+                    // 2. If text has no '=', remove trailing comma and add '='
+                    if (multiText.includes('=')) {
+                        handleMultiTextApply();
+                    } else if (multiText.trim().length > 0) {
+                        let processed = multiText.trim();
+                        // Strip trailing comma before adding =
+                        if (processed.endsWith(',')) {
+                            processed = processed.slice(0, -1);
+                        }
+                        setMultiText(processed + "=");
+                    }
                 }
                 return;
             }
@@ -471,7 +497,7 @@ export function DataEntryControls({
                     <h3 className="font-semibold text-xs mb-1">Multi-Text Entry (Enter to Apply)</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="01=100, 02 50, 01,02,03=500..."
+                        placeholder="Type numbers (auto-comma), Enter for '=', Enter again to Apply..."
                         rows={6}
                         value={multiText}
                         onChange={handleMultiTextChange}
