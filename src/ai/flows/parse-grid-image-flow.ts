@@ -33,12 +33,12 @@ export async function parseGridImage(input: ParseGridImageInput): Promise<ParseG
     console.error("AI Image Parsing error:", error);
     // Standardize error reporting for client consumption
     if (error.message?.includes("RESOURCE_EXHAUSTED") || error.message?.includes("429")) {
-      throw new Error("API Limit Reached. Please wait 60 seconds and try again.");
+      throw new Error("AI Rate Limit reached. Please wait a minute and try again.");
     }
     if (error.message?.includes("API key not valid")) {
-      throw new Error("Invalid API Key. Please verify your GEMINI_API_KEY in the .env file.");
+      throw new Error("Invalid API Key. Please verify your GEMINI_API_KEY.");
     }
-    throw new Error(error.message || "Failed to parse image. Please ensure your GEMINI_API_KEY is configured.");
+    throw new Error(error.message || "Failed to parse image. Please ensure your API key is configured.");
   }
 }
 
@@ -46,16 +46,16 @@ const prompt = ai.definePrompt({
   name: 'parseGridImagePrompt',
   input: {schema: ParseGridImageInputSchema},
   output: {schema: ParseGridImageOutputSchema},
-  prompt: `You are an expert OCR system specializing in reading grid-based number sheets. 
-Your task is to analyze the provided image of a grid and extract all numbers that have an associated amount.
+  prompt: `You are an expert OCR system specialized in reading jantri/grid-based number sheets. 
 
-The grid typically contains numbers from 00 to 99. 
-Each cell may contain a large number (the cell identifier, e.g., 01, 10, 55) and a smaller number below it (the amount).
+Your task:
+1. Analyze the image which contains a grid of 100 boxes (from 00 to 99).
+2. Each box has a small 2-digit identifier at the top-left or top (e.g., "01", "11", "55").
+3. Some boxes have a large number written inside them (the amount). In the provided image, many cells show "1000".
+4. Extract every cell that has an amount written inside it.
+5. Return a JSON object where the keys are the 2-digit cell identifiers (always as 2-digit strings like "01", "00", "99") and the values are the numeric amounts found inside those specific boxes.
 
-Identify every cell that has a value/amount entered.
-Return a JSON object where the keys are the 2-digit cell numbers (formatted as strings like "01", "00", "99") and the values are the numeric amounts.
-
-Only include cells that actually have an amount.
+Ignore any empty cells. Only include cells that clearly have an amount written in them.
 
 Photo: {{media url=photoDataUri}}`,
 });
