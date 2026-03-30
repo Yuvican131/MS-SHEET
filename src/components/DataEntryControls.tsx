@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -136,102 +135,35 @@ export function DataEntryControls({
     
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
-
-        // Enhanced Universal Parser
-        function parseInput(text: string) {
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-            const items: { pairs: string[], amount: number }[] = [];
-
-            lines.forEach(line => {
-                // Filter out headers or totals if they were accidentally copied
-                const lowerLine = line.toLowerCase();
-                if (lowerLine.includes('total') || ['dd', 'ml', 'fb', 'gb', 'gl', 'ds'].includes(lowerLine)) {
-                    return;
+        
+        const lines = multiText.split('\n').map(l => l.trim()).filter(l => l);
+        lines.forEach(line => {
+            const parts = line.split(/[=\(\):\*x-]/);
+            if (parts.length >= 2) {
+                const amountPart = parts[parts.length - 1].replace(/[^0-9]/g, '');
+                const amount = parseInt(amountPart, 10);
+                if (!isNaN(amount)) {
+                    const pairsPart = parts.slice(0, -1).join(',');
+                    const pairs = pairsPart.split(/[,.\s]+/).filter(p => p.length === 2 && /^\d+$/.test(p));
+                    pairs.forEach(pair => {
+                        const key = pair.padStart(2, '0');
+                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                        totalForCheck += amount;
+                    });
                 }
-
-                // Handle standard formats: 11,22,33=100 or 11,22(100) or 11:100 or 11-100
-                const parts = line.split(/[=\(\):\*x-]/);
-                if (parts.length >= 2) {
-                    const amountPart = parts[parts.length - 1].replace(/[^0-9]/g, '');
-                    const amount = parseInt(amountPart, 10);
-                    if (!isNaN(amount)) {
-                        const pairsPart = parts.slice(0, -1).join(',');
-                        const pairs = pairsPart.split(/[,.\s]+/).filter(p => p.length === 2 && /^\d+$/.test(p));
-                        if (pairs.length > 0) {
-                            items.push({ pairs, amount });
-                            return;
-                        }
-                    }
-                }
-
-                // Handle Sequence Format: 01 100 02 200 03 300
-                const tokens = line.split(/[\s,]+/).filter(t => t);
-                if (tokens.length >= 2 && tokens.length % 2 === 0) {
-                    // Check if it looks like a sequence of Pair, Amount, Pair, Amount
-                    let looksLikeSequence = true;
-                    for (let i = 0; i < tokens.length; i += 2) {
-                        if (tokens[i].length !== 2 || !/^\d+$/.test(tokens[i])) {
-                            looksLikeSequence = false;
-                            break;
-                        }
-                    }
-                    if (looksLikeSequence) {
-                        for (let i = 0; i < tokens.length; i += 2) {
-                            items.push({ pairs: [tokens[i]], amount: parseInt(tokens[i+1], 10) });
-                        }
-                        return;
-                    }
-                }
-
-                // Handle Crossing format (e.g. 123*456=100)
-                const crossingMatch = line.match(/(\d+)\*(\d+)=(\d+)/);
-                if (crossingMatch) {
-                    const part1 = crossingMatch[1].split('');
-                    const part2 = crossingMatch[2].split('');
-                    const amount = parseInt(crossingMatch[3], 10);
-                    const crossPairs: string[] = [];
-                    part1.forEach(d1 => part2.forEach(d2 => crossPairs.push(`${d1}${d2}`)));
-                    items.push({ pairs: crossPairs, amount });
-                    return;
-                }
-                
-                // Final fallback: try to extract any 2-digit number and look for an amount after it
-                const fallbackPairs = line.match(/\b\d{2}\b/g) || [];
-                const fallbackAmountMatch = line.match(/(\d+)$/);
-                if (fallbackPairs.length > 0 && fallbackAmountMatch) {
-                    items.push({ pairs: fallbackPairs, amount: parseInt(fallbackAmountMatch[1], 10) });
-                }
-            });
-
-            return items;
-        }
-
-        try {
-            const parsedItems = parseInput(multiText);
-            
-            if (parsedItems.length === 0) {
-                toast({ title: "No data processed", description: "Could not find valid patterns. Use formats like 01=100 or 01 100.", variant: "destructive" });
-                return;
             }
+        });
 
-            parsedItems.forEach(item => {
-                const amount = item.amount;
-                item.pairs.forEach(pair => {
-                    const key = pair.padStart(2, '0');
-                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                    totalForCheck += amount;
-                });
-            });
-
-            if (!checkBalance(totalForCheck)) return;
-
-            onDataUpdate(finalUpdates, multiText);
-            setMultiText("");
-            focusMultiText();
-            
-        } catch (error: any) {
-            console.error("Parsing error", error);
+        if (Object.keys(finalUpdates).length === 0) {
+            toast({ title: "No data processed", description: "Could not find valid patterns. Use format like 01=100 or 01-100.", variant: "destructive" });
+            return;
         }
+
+        if (!checkBalance(totalForCheck)) return;
+
+        onDataUpdate(finalUpdates, multiText);
+        setMultiText("");
+        focusMultiText();
     };
     
     const handleLaddiApply = () => {
