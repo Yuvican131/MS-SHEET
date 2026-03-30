@@ -30,7 +30,7 @@ export function GridView({
     validations,
     handleCellChange,
     handleCellBlur,
-isDataEntryDisabled,
+    isDataEntryDisabled,
     showClientSelectionToast,
 }: GridViewProps) {
 
@@ -56,6 +56,22 @@ isDataEntryDisabled,
 
     const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentKey: string) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Calculate next cell
+            let currentNum = currentKey === '00' ? 100 : parseInt(currentKey, 10);
+            let nextNum = (currentNum % 100) + 1;
+            let nextKey = nextNum === 100 ? '00' : nextNum.toString().padStart(2, '0');
+            
+            const nextInput = document.getElementById(`cell-${nextKey}`);
+            if (nextInput) {
+                (nextInput as HTMLInputElement).focus();
+                (nextInput as HTMLInputElement).select(); // Select content for quick overwriting
+            }
+        }
+    };
+
     return (
         <div className="grid-sheet-layout h-full w-full">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -76,6 +92,7 @@ isDataEntryDisabled,
                                     value={currentData[dataKey] || ''}
                                     onChange={(e) => handleCellChange(dataKey, e.target.value)}
                                     onBlur={() => handleCellBlur(dataKey)}
+                                    onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                                     className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
