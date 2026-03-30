@@ -58,7 +58,9 @@ const DrawsPerformanceTable = ({
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="w-[200px] font-black uppercase text-[10px] tracking-widest">Draw & Result</TableHead>
+            <TableHead className="w-[280px] font-black uppercase text-[10px] tracking-widest">
+              Draw & Result {selectedDate && <span className="ml-2 text-muted-foreground font-normal">({format(selectedDate, "dd/MM/yyyy")})</span>}
+            </TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Total Played</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Passing Pts</TableHead>
             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Draw Net</TableHead>
@@ -220,8 +222,10 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                           {account.clientName}
                         </span>
                         <span className={cn(
-                          "text-sm font-black tabular-nums whitespace-nowrap ml-2",
-                          isActive ? "text-primary-foreground" : (balanceValue >= 0 ? "text-primary" : "text-destructive")
+                          "text-base font-black tabular-nums whitespace-nowrap ml-2",
+                          isActive 
+                            ? (balanceValue >= 0 ? "text-primary-foreground" : "text-destructive") 
+                            : (balanceValue >= 0 ? "text-primary" : "text-destructive")
                         )}>
                           ₹{formatNumber(balanceValue)}
                         </span>
@@ -288,12 +292,7 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
               </CardHeader>
               
               <ScrollArea className="flex-1">
-                <CardContent className="p-6 space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-primary" /> Daily Draw Performance ({selectedDate ? format(selectedDate, "dd/MM/yyyy") : "No Date"})
-                    </h3>
-                    
+                <CardContent className="p-6">
                     {hasActiveDraws ? (
                       <DrawsPerformanceTable 
                         client={selectedClient}
@@ -307,7 +306,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                         <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">No activity for this client on this date</p>
                       </div>
                     )}
-                  </div>
                 </CardContent>
               </ScrollArea>
             </Card>
