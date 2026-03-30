@@ -4,7 +4,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 
 /**
  * Genkit initialization with support for multiple API key environment variables.
- * Using Gemini 1.5 Flash for better rate limits on the free tier.
+ * Using Gemini 1.5 Flash for better stability and reliability on free tiers.
  */
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY;
 

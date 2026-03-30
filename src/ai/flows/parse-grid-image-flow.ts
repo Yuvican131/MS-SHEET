@@ -47,18 +47,31 @@ const prompt = ai.definePrompt({
   name: 'parseGridImagePrompt',
   input: {schema: ParseGridImageInputSchema},
   output: {schema: ParseGridImageOutputSchema},
-  prompt: `You are an expert OCR system specialized in reading "Jantri" or grid-based number sheets.
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+    ]
+  },
+  prompt: `You are an expert OCR system specialized in reading "Jantri" style grid sheets.
 
-Your task:
-1. Analyze the image which contains a 10x10 grid of 100 boxes (00 to 99).
-2. Inside each box, there is a small printed 2-digit number (the identifier) and possibly a larger handwritten or typed number (the amount).
-3. Identify every box that has an amount written in it. 
-4. For example, if box "14" has "1000" written inside it, you must record that.
-5. Extract all such pairs and return them as a JSON object where:
-   - The key is the 2-digit identifier (e.g., "00", "01", "99").
-   - The value is the numeric amount (e.g., 1000, 500).
+IMAGE ANALYSIS:
+The image contains a 10x10 grid of 100 boxes.
+- Each box has a small printed 2-digit number (00 to 99) in a corner or at the top. This is the "identifier".
+- Some boxes have a larger handwritten or typed number inside. This is the "amount".
 
-Ignore any empty boxes. Only include boxes where an amount is clearly visible.
+YOUR TASK:
+1. Go through every box from 00 to 99.
+2. If you see a clearly written amount inside a box, record the 2-digit identifier and that amount.
+3. Ignore any boxes that are empty or only contain the small printed identifier.
+4. If an amount looks like "1000", record 1000. If it looks like "500", record 500.
+
+OUTPUT FORMAT:
+Return a JSON object where the key is the 2-digit identifier (e.g. "01", "14", "99") and the value is the numeric amount.
+
+Example: {"01": 100, "14": 1000, "88": 500}
 
 Photo: {{media url=photoDataUri}}`,
 });
