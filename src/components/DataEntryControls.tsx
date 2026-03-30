@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
@@ -448,26 +447,35 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             try {
                 const result = await parseGridImage({ photoDataUri: base64String });
                 
-                if (result && result.gridData && Object.keys(result.gridData).length > 0) {
+                if (result && result.gridData) {
                     let totalAmount = 0;
                     const updates: { [key: string]: number } = {};
-                    Object.entries(result.gridData).forEach(([key, amount]) => {
-                        updates[key] = amount;
-                        totalAmount += amount;
+                    const entriesFound = Object.entries(result.gridData);
+                    
+                    if (entriesFound.length === 0) {
+                        toast({ title: "No entries found", description: "The AI couldn't detect any handwritten amounts in the grid." });
+                        setIsScanning(false);
+                        return;
+                    }
+
+                    entriesFound.forEach(([key, amount]) => {
+                        const numValue = typeof amount === 'number' ? amount : parseFloat(String(amount));
+                        if (!isNaN(numValue)) {
+                            updates[key] = numValue;
+                            totalAmount += numValue;
+                        }
                     });
 
                     if (checkBalance(totalAmount)) {
                         onDataUpdate(updates, "AI Image Scan Entry");
-                        toast({ title: "Scan Complete", description: `Successfully extracted ${Object.keys(result.gridData).length} entries.` });
+                        toast({ title: "Scan Complete", description: `Successfully extracted ${Object.keys(updates).length} entries from the grid.` });
                     }
                 }
             } catch (error: any) {
                 console.error("Scanning error:", error);
                 toast({ 
                     title: "Scan Failed", 
-                    description: error.message.includes("API key not valid") 
-                        ? "API Key Missing or Invalid. Please ensure GEMINI_API_KEY is correct." 
-                        : "Failed to parse image. Ensure the photo is clear.", 
+                    description: error.message, 
                     variant: "destructive" 
                 });
             } finally {
