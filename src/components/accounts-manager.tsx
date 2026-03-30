@@ -6,10 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
 import { formatNumber } from "@/lib/utils"
-import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText } from 'lucide-react';
+import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText, Calendar as CalendarIcon, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { Button } from "@/components/ui/button"
+import { format, addDays, subDays } from "date-fns"
 
 export type DrawData = {
   totalAmount: number;
@@ -29,6 +33,7 @@ type AccountsManagerProps = {
   clients: Client[];
   setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
   selectedDate: Date | undefined;
+  onDateChange: (date: Date | undefined) => void;
   getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
 };
 
@@ -108,7 +113,7 @@ const DrawsPerformanceTable = ({
   );
 };
 
-export default function AccountsManager({ accounts, clients, selectedDate, getDeclaredNumber }: AccountsManagerProps) {
+export default function AccountsManager({ accounts, clients, selectedDate, onDateChange, getDeclaredNumber }: AccountsManagerProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(accounts[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -129,6 +134,14 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
   const totalPlayed = selectedAccount?.draws ? Object.values(selectedAccount.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
   const hasActiveDraws = selectedAccount?.draws && Object.values(selectedAccount.draws).some(d => d.totalAmount > 0);
 
+  const handlePrevDay = () => {
+    if (selectedDate) onDateChange(subDays(selectedDate, 1));
+  };
+
+  const handleNextDay = () => {
+    if (selectedDate) onDateChange(addDays(selectedDate, 1));
+  };
+
   return (
     <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
       <CardContent className="flex-1 p-0 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
@@ -137,10 +150,47 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
         <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
           <Card className="flex flex-col h-full overflow-hidden border shadow-sm">
             <CardHeader className="p-4 space-y-4 border-b bg-muted/20">
-              <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-                <Search className="h-3 w-3" />
-                Client Accounts
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                  <Search className="h-3 w-3" />
+                  Client Accounts
+                </CardTitle>
+              </div>
+
+              {/* Date Selector Header */}
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handlePrevDay}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 h-9 justify-start text-left font-bold text-xs uppercase tracking-tighter",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                      {selectedDate ? format(selectedDate, "EEE, dd MMM") : "Select Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={onDateChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleNextDay}>
+                  <ChevronRightIcon className="h-4 w-4" />
+                </Button>
+              </div>
+
               <Input 
                 placeholder="Search clients..." 
                 className="h-9 bg-background"
@@ -244,7 +294,7 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-4">
                     <h3 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-primary" /> Daily Draw Performance
+                      <Activity className="h-4 w-4 text-primary" /> Daily Draw Performance ({selectedDate ? format(selectedDate, "dd/MM/yyyy") : "No Date"})
                     </h3>
                     
                     {hasActiveDraws ? (
@@ -257,7 +307,7 @@ export default function AccountsManager({ accounts, clients, selectedDate, getDe
                     ) : (
                       <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-3xl bg-muted/5">
                         <CircleDollarSign className="h-14 w-14 text-muted-foreground/20 mb-4" />
-                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">No activity for this client today</p>
+                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">No activity for this client on this date</p>
                       </div>
                     )}
                   </div>

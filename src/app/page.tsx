@@ -569,6 +569,7 @@ export default function Home() {
               clients={clients} 
               setAccounts={setAccounts} 
               selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
               getDeclaredNumber={getDeclaredNumber}
             />
           </TabsContent>
