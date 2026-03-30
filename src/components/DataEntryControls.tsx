@@ -133,51 +133,77 @@ export function DataEntryControls({
         }
         if (!multiText.trim()) return;
     
-        const finalUpdates: { [key: string]: number } = {};
+        const updates: { [key: string]: number } = {};
         let totalForCheck = 0;
-        let processed = false;
+        let foundAny = false;
 
-        // Pattern 1: Robust extraction for formats like:
-        // 01,02,03=100
-        // 01 02 100
-        // 01(100)
-        // 01*100
-        // 01x100
-        const entryPattern = /((?:\d{2}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
-        let match;
+        // Split input into lines for systematic processing
+        const lines = multiText.split(/[\n\r]+/);
+        
+        lines.forEach(line => {
+            if (!line.trim()) return;
 
-        while ((match = entryPattern.exec(multiText)) !== null) {
-            processed = true;
-            const numbersPart = match[1];
-            const amount = parseFloat(match[2]);
-            
-            if (!isNaN(amount)) {
-                const individualNumbers = numbersPart.split(/[,\s]+/).filter(n => n.length === 2);
-                individualNumbers.forEach(num => {
-                    finalUpdates[num] = (finalUpdates[num] || 0) + amount;
-                    totalForCheck += amount;
-                });
-            }
-        }
+            // Pattern Matcher for formats: "01,02=100", "01 100", "01(100)", "01*50", "01x50", "01:50", "01-50"
+            // We look for sequences of numbers separated by non-digit characters followed by an amount
+            const entryPattern = /((?:\d{1,3}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
+            let match;
+            let lineProcessed = false;
 
-        // Pattern 2: Bulk sequence fallback (e.g. "01 100 02 200")
-        if (!processed) {
-            const tokens = multiText.trim().split(/\s+/);
-            for (let i = 0; i < tokens.length; i += 2) {
-                const num = tokens[i];
-                const amt = parseFloat(tokens[i+1]);
-                if (num && num.length === 2 && !isNaN(amt)) {
-                    finalUpdates[num] = (finalUpdates[num] || 0) + amt;
-                    totalForCheck += amt;
-                    processed = true;
+            while ((match = entryPattern.exec(line)) !== null) {
+                lineProcessed = true;
+                foundAny = true;
+                const numbersPart = match[1];
+                const amount = parseFloat(match[2]);
+                
+                if (!isNaN(amount)) {
+                    const individualNumbers = numbersPart.split(/[,\s]+/).filter(n => n.length > 0);
+                    individualNumbers.forEach(n => {
+                        const cleanedNum = n.replace(/[^0-9]/g, '');
+                        if (cleanedNum.length > 0) {
+                            let key = cleanedNum;
+                            const numInt = parseInt(cleanedNum, 10);
+                            if (numInt === 100 || cleanedNum === '00') {
+                                key = '00';
+                            } else {
+                                key = cleanedNum.padStart(2, '0').slice(-2);
+                            }
+                            updates[key] = (updates[key] || 0) + amount;
+                            totalForCheck += amount;
+                        }
+                    });
                 }
             }
-        }
 
-        if (!processed) {
+            // Fallback for simple space-separated sequence on the line: "01 100 02 200"
+            if (!lineProcessed) {
+                const tokens = line.trim().split(/[\s,]+/);
+                for (let i = 0; i < tokens.length; i += 2) {
+                    const numToken = tokens[i];
+                    const amtToken = tokens[i+1];
+                    const amount = parseFloat(amtToken);
+                    if (numToken && !isNaN(amount)) {
+                        const cleanedNum = numToken.replace(/[^0-9]/g, '');
+                        if (cleanedNum.length > 0) {
+                            foundAny = true;
+                            let key = cleanedNum;
+                            const numInt = parseInt(cleanedNum, 10);
+                            if (numInt === 100 || cleanedNum === '00') {
+                                key = '00';
+                            } else {
+                                key = cleanedNum.padStart(2, '0').slice(-2);
+                            }
+                            updates[key] = (updates[key] || 0) + amount;
+                            totalForCheck += amount;
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!foundAny) {
             toast({ 
-                title: "Invalid Format", 
-                description: "Try formats like: 01,02=100 or 01(100) or 01 100", 
+                title: "Format Error", 
+                description: "Use formats like 01=100, 01 100, or 01,02(100)", 
                 variant: "destructive" 
             });
             return;
@@ -185,9 +211,10 @@ export function DataEntryControls({
 
         if (!checkBalance(totalForCheck)) return;
 
-        onDataUpdate(finalUpdates, multiText);
+        onDataUpdate(updates, multiText);
         setMultiText("");
-        focusMultiText();
+        // Return focus to multi-text for next entry
+        setTimeout(() => multiTextRef.current?.focus(), 0);
     };
     
     const handleLaddiApply = () => {
@@ -331,7 +358,11 @@ export function DataEntryControls({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
             if (from === 'multiText') {
-                // Allow standard multiline entry in the textarea
+                // If Shift+Enter, allow new line. If just Enter, APPLY the data.
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    handleMultiTextApply();
+                }
                 return;
             }
             e.preventDefault();
@@ -437,20 +468,20 @@ export function DataEntryControls({
               <ScrollArea className="flex-grow pr-2 -mr-2">
               <div className="space-y-2 pr-2">
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
+                    <h3 className="font-semibold text-xs mb-1">Multi-Text Entry (Enter to Apply)</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="01=100, 02 50, 03(200)..."
-                        rows={4}
+                        placeholder="01=100, 02 50, 01,02,03=500..."
+                        rows={6}
                         value={multiText}
                         onChange={handleMultiTextChange}
                         onKeyDown={(e) => handleKeyDown(e, 'multiText')}
-                        className="w-full text-base"
+                        className="w-full text-base font-mono"
                         disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                     />
                     <div className="grid grid-cols-2 gap-2 mt-1">
-                        <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                        <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply (Enter)</Button>
                         <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
@@ -555,14 +586,14 @@ export function DataEntryControls({
                   </div>
                 </div>
               </div>
-            </ScrollArea>
-            <div className="border rounded-lg p-2 mt-2">
-                <Button onClick={openMasterSheet} variant="outline" className="w-full">
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    View Master Sheet
-                </Button>
+              </ScrollArea>
+              <div className="border rounded-lg p-2 mt-2">
+                  <Button onClick={openMasterSheet} variant="outline" className="w-full">
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      View Master Sheet
+                  </Button>
+              </div>
             </div>
-          </div>
             <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
