@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
@@ -465,7 +466,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                 toast({ 
                     title: "Scan Failed", 
                     description: error.message.includes("API key not valid") 
-                        ? "API Key Missing. Please add GEMINI_API_KEY to your .env file." 
+                        ? "API Key Missing or Invalid. Please ensure GEMINI_API_KEY is correct." 
                         : "Failed to parse image. Ensure the photo is clear.", 
                     variant: "destructive" 
                 });
@@ -512,7 +513,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                 <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-xs">Multi-Text Entry</h3>
                     <div className="flex items-center gap-1">
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        <input type="file" id="ai-image-input" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                         <Button 
                             variant="outline" 
                             size="sm" 
