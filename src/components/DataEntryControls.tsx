@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download, Mic } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -122,8 +123,7 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-        setMultiText(newValue);
+        setMultiText(e.target.value);
     };
     
     const handleMultiTextApply = () => {
@@ -135,27 +135,51 @@ export function DataEntryControls({
     
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
-        
-        const lines = multiText.split('\n').map(l => l.trim()).filter(l => l);
-        lines.forEach(line => {
-            const parts = line.split(/[=\s\-x*:]+/);
-            if (parts.length >= 2) {
-                const amount = parseFloat(parts[parts.length - 1]);
-                if (!isNaN(amount)) {
-                    const pairs = parts.slice(0, -1);
-                    pairs.forEach(p => {
-                        const cleaned = p.replace(/[^0-9]/g, '');
-                        if (cleaned.length === 2) {
-                            finalUpdates[cleaned] = (finalUpdates[cleaned] || 0) + amount;
-                            totalForCheck += amount;
-                        }
-                    });
+        let processed = false;
+
+        // Pattern 1: Robust extraction for formats like:
+        // 01,02,03=100
+        // 01 02 100
+        // 01(100)
+        // 01*100
+        // 01x100
+        const entryPattern = /((?:\d{2}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
+        let match;
+
+        while ((match = entryPattern.exec(multiText)) !== null) {
+            processed = true;
+            const numbersPart = match[1];
+            const amount = parseFloat(match[2]);
+            
+            if (!isNaN(amount)) {
+                const individualNumbers = numbersPart.split(/[,\s]+/).filter(n => n.length === 2);
+                individualNumbers.forEach(num => {
+                    finalUpdates[num] = (finalUpdates[num] || 0) + amount;
+                    totalForCheck += amount;
+                });
+            }
+        }
+
+        // Pattern 2: Bulk sequence fallback (e.g. "01 100 02 200")
+        if (!processed) {
+            const tokens = multiText.trim().split(/\s+/);
+            for (let i = 0; i < tokens.length; i += 2) {
+                const num = tokens[i];
+                const amt = parseFloat(tokens[i+1]);
+                if (num && num.length === 2 && !isNaN(amt)) {
+                    finalUpdates[num] = (finalUpdates[num] || 0) + amt;
+                    totalForCheck += amt;
+                    processed = true;
                 }
             }
-        });
+        }
 
-        if (Object.keys(finalUpdates).length === 0) {
-            toast({ title: "No data processed", description: "Use format like 01=100 or 01 100", variant: "destructive" });
+        if (!processed) {
+            toast({ 
+                title: "Invalid Format", 
+                description: "Try formats like: 01,02=100 or 01(100) or 01 100", 
+                variant: "destructive" 
+            });
             return;
         }
 
@@ -307,7 +331,7 @@ export function DataEntryControls({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
             if (from === 'multiText') {
-                // Allow standard Enter behavior in multiText textarea
+                // Allow standard multiline entry in the textarea
                 return;
             }
             e.preventDefault();
@@ -416,7 +440,7 @@ export function DataEntryControls({
                     <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="Paste grid here or type: 01=100 or 01 100"
+                        placeholder="01=100, 02 50, 03(200)..."
                         rows={4}
                         value={multiText}
                         onChange={handleMultiTextChange}
