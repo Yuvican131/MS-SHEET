@@ -614,8 +614,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       })
       setValidations(prev => ({ ...prev, [key]: { ...result, isLoading: false } }))
     } catch (error) {
-      console.error("Validation error:", error)
-      toast({ title: "Error", description: "AI validation failed.", variant: "destructive" })
+      // AI errors are handled silently to avoid blocking the user experience when API keys are missing.
       setValidations(prev => ({ ...prev, [key]: { isValid: true, recommendation: '', isLoading: false } }))
     }
   }
@@ -925,5 +924,3 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-

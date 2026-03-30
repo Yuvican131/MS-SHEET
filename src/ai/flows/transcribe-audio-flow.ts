@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for transcribing audio to text.
@@ -9,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import {googleAI} from '@genkit-ai/google-genai';
 import wav from 'wav';
 
 const TranscribeAudioInputSchema = z.object({
@@ -73,12 +74,12 @@ const transcribeAudioFlow = ai.defineFlow(
     const wavData = await toWav(audioBuffer);
     const wavDataUri = `data:audio/wav;base64,${wavData}`;
     const {text} = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview'),
+      model: googleAI.model('gemini-2.0-flash'),
       prompt: [
         {media: {url: wavDataUri, contentType: 'audio/wav'}},
         {text: `transcribe the audio`},
       ],
     });
-    return {text};
+    return {text: text || ""};
   }
 );
