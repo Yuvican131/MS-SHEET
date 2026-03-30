@@ -32,7 +32,17 @@ export type ProcessOrderOutput = z.infer<typeof ProcessOrderOutputSchema>;
 export async function processOrder(
   input: ProcessOrderInput
 ): Promise<ProcessOrderOutput> {
-  return processOrderFlow(input);
+  try {
+    return await processOrderFlow(input);
+  } catch (error: any) {
+    console.warn("AI Order Processing unavailable:", error);
+    // Return a structured empty response if AI fails
+    return {
+      draw: "",
+      orders: [],
+      clientPhoneNumber: input.clientPhoneNumber
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
