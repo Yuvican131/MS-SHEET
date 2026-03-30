@@ -593,30 +593,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleCellBlur = async (key: string) => {
-    if (!selectedClientId) return;
-
-    const cellContent = currentData[key]
-
-    if (!cellContent || cellContent.trim() === "") {
-      const newValidations = {...validations};
-      delete newValidations[key];
-      setValidations(newValidations);
-      return;
-    }
-
-    setValidations(prev => ({ ...prev, [key]: { isValid: true, recommendation: '', isLoading: true } }))
-
-    try {
-      const result: ValidateCellContentOutput = await validateCellContent({
-        cellContent,
-        validationRules: DUMMY_RULES,
-        commonlyUsedAccountNames: DUMMY_ACCOUNTS,
-      })
-      setValidations(prev => ({ ...prev, [key]: { ...result, isLoading: false } }))
-    } catch (error) {
-      // AI errors are handled silently to avoid blocking the user experience when API keys are missing.
-      setValidations(prev => ({ ...prev, [key]: { isValid: true, recommendation: '', isLoading: false } }))
-    }
+    // Automatic AI validation disabled to save API quota for scanning.
+    return;
   }
 
   const checkBalance = (entryTotal: number): boolean => {
