@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperat
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download, Mic, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +13,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/hooks/useClients";
 import { formatNumber } from "@/lib/utils";
-import { parseGridImage } from "@/ai/flows/parse-grid-image-flow";
 
 interface DataEntryControlsProps {
     clients: Client[];
@@ -68,9 +67,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
     const [combinationCount, setCombinationCount] = useState(0);
     const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
-    const [isScanning, setIsScanning] = useState(false);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const multiTextRef = useRef<HTMLTextAreaElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
@@ -101,7 +98,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
         lines.forEach(line => {
             if (!line.trim()) return;
 
-            // Pattern for standard entry like 01,02=100 or 01=100
             const entryPattern = /((?:\d{1,3}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
             let match;
             let lineProcessed = false;
@@ -174,8 +170,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         let val = e.target.value;
-        // Auto-comma logic: every 2 digits append a comma if not already followed by one
-        // and we are not in the "amount" part (after an equals sign)
         if (val.length > multiText.length && !val.includes('=')) {
             const parts = val.split(',');
             const lastPart = parts[parts.length - 1];
@@ -191,7 +185,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             if (from === 'multiText') {
                 if (!e.shiftKey) {
                     e.preventDefault();
-                    // Rapid Entry Toggle: No Equals -> Add Equals. Has Equals -> Apply to sheet.
                     if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim().length > 0) {
@@ -433,58 +426,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             toast({ title: "Copied to clipboard!" });
         });
     };
-
-    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || isDataEntryDisabled) return;
-
-        setIsScanning(true);
-        toast({ title: "Scanning Image...", description: "AI is analyzing your grid sheet photo." });
-
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            const base64String = reader.result as string;
-            try {
-                const result = await parseGridImage({ photoDataUri: base64String });
-                
-                if (result && result.gridData) {
-                    let totalAmount = 0;
-                    const updates: { [key: string]: number } = {};
-                    const entriesFound = Object.entries(result.gridData);
-                    
-                    if (entriesFound.length === 0) {
-                        toast({ title: "No entries found", description: "The AI couldn't detect any handwritten amounts in the grid." });
-                        setIsScanning(false);
-                        return;
-                    }
-
-                    entriesFound.forEach(([key, amount]) => {
-                        const numValue = typeof amount === 'number' ? amount : parseFloat(String(amount));
-                        if (!isNaN(numValue)) {
-                            updates[key] = numValue;
-                            totalAmount += numValue;
-                        }
-                    });
-
-                    if (checkBalance(totalAmount)) {
-                        onDataUpdate(updates, "AI Image Scan Entry");
-                        toast({ title: "Scan Complete", description: `Successfully extracted ${Object.keys(updates).length} entries from the grid.` });
-                    }
-                }
-            } catch (error: any) {
-                console.error("Scanning error:", error);
-                toast({ 
-                    title: "Scan Failed", 
-                    description: error.message, 
-                    variant: "destructive" 
-                });
-            } finally {
-                setIsScanning(false);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-            }
-        };
-        reader.readAsDataURL(file);
-    };
     
     return (
         <div className="flex flex-col gap-2 w-full min-h-0 lg:w-[320px] xl:w-[360px] flex-shrink-0">
@@ -520,19 +461,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             <div className="border rounded-lg p-2 flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-xs">Multi-Text Entry</h3>
-                    <div className="flex items-center gap-1">
-                        <input type="file" id="ai-image-input" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-7 px-2 text-[10px]" 
-                            onClick={() => isDataEntryDisabled ? showClientSelectionToast() : fileInputRef.current?.click()}
-                            disabled={isScanning || isDataEntryDisabled}
-                        >
-                            {isScanning ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
-                            Scan Image
-                        </Button>
-                    </div>
                 </div>
                 <Textarea
                     ref={multiTextRef}
