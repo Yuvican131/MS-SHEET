@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const GRID_ROWS = 10;
 const GRID_COLS = 10;
@@ -33,6 +34,7 @@ export function GridView({
     isDataEntryDisabled,
     showClientSelectionToast,
 }: GridViewProps) {
+    const { toast } = useToast();
 
     const rowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
         let total = 0;
@@ -72,6 +74,19 @@ export function GridView({
         }
     };
 
+    const onInputChange = (key: string, value: string) => {
+        // Regex to allow only digits or an empty string
+        if (value === '' || /^\d+$/.test(value)) {
+            handleCellChange(key, value);
+        } else {
+            toast({
+                title: "Only numbers allowed",
+                description: "Please enter numeric values only in the grid.",
+                variant: "destructive",
+            });
+        }
+    };
+
     return (
         <div className="grid-sheet-layout h-full w-full">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -90,7 +105,7 @@ export function GridView({
                                     id={`cell-${dataKey}`}
                                     type="text"
                                     value={currentData[dataKey] || ''}
-                                    onChange={(e) => handleCellChange(dataKey, e.target.value)}
+                                    onChange={(e) => onInputChange(dataKey, e.target.value)}
                                     onBlur={() => handleCellBlur(dataKey)}
                                     onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
