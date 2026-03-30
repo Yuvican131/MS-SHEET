@@ -123,32 +123,8 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        let newValue = e.target.value;
-
-        // Allow backspace to work naturally
-        if (newValue.length < multiText.length) {
-            setMultiText(newValue);
-            return;
-        }
-        
-        newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
-
-        if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
-            setMultiText(newValue);
-            return;
-        }
-        
-        const rawNumbers = newValue.replace(/[^0-9]/g, '');
-        if (rawNumbers.length > 0) {
-            const pairs = rawNumbers.match(/.{1,2}/g) || [];
-            let formatted = pairs.join(',');
-            if (rawNumbers.length % 2 === 0 && rawNumbers.length > 0) {
-                formatted += ',';
-            }
-            setMultiText(formatted);
-        } else {
-            setMultiText('');
-        }
+        const newValue = e.target.value;
+        setMultiText(newValue);
     };
     
     const handleMultiTextApply = () => {
@@ -161,207 +137,100 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
 
-        let processedText = multiText.replace(/\)(?=[^\s\n])/g, ')\n');
-    
-        function parseFinalUniversalData(text: string) {
-            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
-            const groups = text.split(/[\s\n]+/).filter(g => g.trim() !== "");
+        // Enhanced Universal Parser
+        function parseInput(text: string) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            const items: { pairs: string[], amount: number }[] = [];
 
-            for (const group of groups) {
-                const amountMatch = group.match(/\((\d+)\)/) 
-                                 || group.match(/[\*x=](\d+)/i)
-                                 || group.match(/(?<![a-zA-Z0-9\._])(\d+)$/);
-
-                const amount = amountMatch ? Number(amountMatch[1]) : null;
-        
-                let cleaned = group;
-                if (amountMatch) {
-                     cleaned = cleaned.substring(0, amountMatch.index).trim();
-                }
-                
-                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0,-1);
-
-                cleaned = cleaned.replace(/ghar/gi, "");
-                
-                if (cleaned.includes('_')) {
-                    result.push({ overlappingPair: cleaned, amount });
-                    continue;
+            lines.forEach(line => {
+                // Filter out headers or totals if they were accidentally copied
+                const lowerLine = line.toLowerCase();
+                if (lowerLine.includes('total') || ['dd', 'ml', 'fb', 'gb', 'gl', 'ds'].includes(lowerLine)) {
+                    return;
                 }
 
-                const runningPairMatch = cleaned.match(/(\d+)-(\d+)/);
-                if (runningPairMatch) {
-                    result.push({ runningPair: runningPairMatch[0], amount });
-                    continue;
+                // Handle standard formats: 11,22,33=100 or 11,22(100) or 11:100 or 11-100
+                const parts = line.split(/[=\(\):\*x-]/);
+                if (parts.length >= 2) {
+                    const amountPart = parts[parts.length - 1].replace(/[^0-9]/g, '');
+                    const amount = parseInt(amountPart, 10);
+                    if (!isNaN(amount)) {
+                        const pairsPart = parts.slice(0, -1).join(',');
+                        const pairs = pairsPart.split(/[,.\s]+/).filter(p => p.length === 2 && /^\d+$/.test(p));
+                        if (pairs.length > 0) {
+                            items.push({ pairs, amount });
+                            return;
+                        }
+                    }
                 }
 
-                const parts = cleaned.split('_').filter(p => p);
+                // Handle Sequence Format: 01 100 02 200 03 300
+                const tokens = line.split(/[\s,]+/).filter(t => t);
+                if (tokens.length >= 2 && tokens.length % 2 === 0) {
+                    // Check if it looks like a sequence of Pair, Amount, Pair, Amount
+                    let looksLikeSequence = true;
+                    for (let i = 0; i < tokens.length; i += 2) {
+                        if (tokens[i].length !== 2 || !/^\d+$/.test(tokens[i])) {
+                            looksLikeSequence = false;
+                            break;
+                        }
+                    }
+                    if (looksLikeSequence) {
+                        for (let i = 0; i < tokens.length; i += 2) {
+                            items.push({ pairs: [tokens[i]], amount: parseInt(tokens[i+1], 10) });
+                        }
+                        return;
+                    }
+                }
+
+                // Handle Crossing format (e.g. 123*456=100)
+                const crossingMatch = line.match(/(\d+)\*(\d+)=(\d+)/);
+                if (crossingMatch) {
+                    const part1 = crossingMatch[1].split('');
+                    const part2 = crossingMatch[2].split('');
+                    const amount = parseInt(crossingMatch[3], 10);
+                    const crossPairs: string[] = [];
+                    part1.forEach(d1 => part2.forEach(d2 => crossPairs.push(`${d1}${d2}`)));
+                    items.push({ pairs: crossPairs, amount });
+                    return;
+                }
                 
-                parts.forEach(part => {
-                    const tokens = part.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
-                    let activeCrossing: number | null = null;
-        
-                    tokens.forEach((token, index) => {
-                        if (!token) return;
-                        
-                        if (token.length === 1 && !/^\d+$/.test(token)) {
-                            toast({ title: "Wrong Input", description: `Single character '${token}' cannot be processed. Please enter valid numbers.`, variant: "destructive" });
-                            throw new Error("Invalid single-character input"); 
-                        }
-        
-                        if (index === 0 && token.length >= 3 && !amount) {
-                            activeCrossing = Number(token);
-                            result.push({ crossing: activeCrossing });
-                        } else if (token.length > 2 && !activeCrossing) {
-                            for (let i = 0; i < token.length; i += 2) {
-                                if(token.slice(i, i + 2).length === 2) {
-                                    const pair = Number(token.slice(i, i + 2));
-                                    result.push({ value: pair, amount });
-                                }
-                            }
-                        } else {
-                            const num = Number(token);
-                            if (activeCrossing) {
-                                result.push({ combination: num, amount });
-                                activeCrossing = null; 
-                            } else {
-                                if (String(token).length === 1 && amount === null) {
-                                    toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed without an amount. Please enter 2-digit numbers or specify an amount.`, variant: "destructive" });
-                                    throw new Error("Invalid single-digit input without amount"); 
-                                }
-                                result.push({ value: num, amount });
-                            }
-                        }
-                    });
-                });
-            }
-        
-            return result;
-        }
-
-        try {
-            const parsedData = parseFinalUniversalData(processedText);
-            
-            let activeCrossing: number | null = null;
-
-            parsedData.forEach(item => {
-                if (item.crossing) {
-                    activeCrossing = item.crossing;
-                } else if (item.overlappingPair && item.amount) {
-                    const [part1, part2] = item.overlappingPair.split('_');
-                    const amount = item.amount;
-                    const combinations = new Set<string>();
-
-                    const generateOverlappingPairs = (numStr: string) => {
-                        const cleanedNumStr = numStr.replace(/[.,]/g, '');
-                        for (let i = 0; i < cleanedNumStr.length - 1; i++) {
-                           const pair = cleanedNumStr.substring(i, i+2);
-                           if (pair.length === 2) {
-                             combinations.add(pair);
-                             const reversePair = pair.split('').reverse().join('');
-                             if (pair !== reversePair) {
-                               combinations.add(reversePair);
-                             }
-                           }
-                        }
-                    };
-
-                    if (part1) generateOverlappingPairs(part1);
-                    if (part2) generateOverlappingPairs(part2);
-                    
-                    const entryTotal = combinations.size * amount;
-                    totalForCheck += entryTotal;
-
-                    combinations.forEach(pair => {
-                        const key = pair.padStart(2, '0');
-                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                    });
-                    
-                } else if (item.runningPair) {
-                    const [startStr, endStr] = item.runningPair.split('-');
-                    const startDigits = [...new Set(startStr.split(''))];
-                    const endDigits = [...new Set(endStr.split(''))];
-                    const amount = item.amount || 0;
-                    const combinations = new Set<string>();
-                    for (const d1 of startDigits) {
-                        for (const d2 of endDigits) {
-                            if (d1 !== d2) {
-                                combinations.add(`${d1}${d2}`);
-                                combinations.add(`${d2}${d1}`);
-                            } else {
-                                combinations.add(`${d1}${d2}`);
-                            }
-                        }
-                    }
-                    const entryTotal = combinations.size * amount;
-                    totalForCheck += entryTotal;
-                    combinations.forEach(pair => {
-                        const key = pair.padStart(2, '0');
-                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                    });
-
-                } else if (item.combination && activeCrossing) {
-                    const crossingDigits = [...new Set(String(activeCrossing).split(''))];
-                    const combinationDigits = [...new Set(String(item.combination).split(''))];
-                    const amount = item.amount || 0;
-                    
-                    const combinations = new Set<string>();
-                    for (const d1 of crossingDigits) {
-                        for (const d2 of combinationDigits) {
-                            if (d1 !== d2) {
-                            combinations.add(`${d1}${d2}`);
-                            combinations.add(`${d2}${d1}`);
-                            } else {
-                            combinations.add(`${d1}${d2}`);
-                            }
-                        }
-                    }
-                    const entryTotal = combinations.size * amount;
-                    totalForCheck += entryTotal;
-                    
-                    combinations.forEach(pair => {
-                        const key = pair.padStart(2, '0');
-                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                    });
-                    activeCrossing = null;
-                } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
-                    if (String(item.value).length % 2 !== 0 && String(item.value).length > 1) {
-                        toast({ title: "Wrong Input", description: `Number '${item.value}' has an odd number of digits. Please enter 2-digit numbers.`, variant: "destructive" });
-                        throw new Error("Invalid odd-digit number");
-                    }
-                    if(String(item.value).length > 2) {
-                        const valueStr = String(item.value);
-                        for (let i = 0; i < valueStr.length; i += 2) {
-                            const pair = valueStr.slice(i, i + 2);
-                            if(pair.length === 2) {
-                                const key = pair;
-                                const amount = item.amount;
-                                totalForCheck += amount;
-                                finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                            }
-                        }
-                    } else {
-                        const key = String(item.value).padStart(2, '0');
-                        const amount = item.amount;
-                        totalForCheck += amount;
-                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                    }
+                // Final fallback: try to extract any 2-digit number and look for an amount after it
+                const fallbackPairs = line.match(/\b\d{2}\b/g) || [];
+                const fallbackAmountMatch = line.match(/(\d+)$/);
+                if (fallbackPairs.length > 0 && fallbackAmountMatch) {
+                    items.push({ pairs: fallbackPairs, amount: parseInt(fallbackAmountMatch[1], 10) });
                 }
             });
 
+            return items;
+        }
 
-            if (!checkBalance(totalForCheck)) {
+        try {
+            const parsedItems = parseInput(multiText);
+            
+            if (parsedItems.length === 0) {
+                toast({ title: "No data processed", description: "Could not find valid patterns. Use formats like 01=100 or 01 100.", variant: "destructive" });
                 return;
             }
 
-            if (Object.keys(finalUpdates).length > 0) {
-                onDataUpdate(finalUpdates, multiText);
-                setMultiText("");
-                focusMultiText();
-            } else {
-                toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
-            }
+            parsedItems.forEach(item => {
+                const amount = item.amount;
+                item.pairs.forEach(pair => {
+                    const key = pair.padStart(2, '0');
+                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                    totalForCheck += amount;
+                });
+            });
+
+            if (!checkBalance(totalForCheck)) return;
+
+            onDataUpdate(finalUpdates, multiText);
+            setMultiText("");
+            focusMultiText();
+            
         } catch (error: any) {
-            return;
+            console.error("Parsing error", error);
         }
     };
     
@@ -506,7 +375,7 @@ export function DataEntryControls({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
             if (from === 'multiText' && e.shiftKey) {
-                return; // Allow new lines with Shift+Enter
+                return;
             }
             e.preventDefault();
             switch (from) {
@@ -529,19 +398,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.trim().match(/[\*()_]/)) {
-                        handleMultiTextApply();
-                    } else if (multiText.trim() && !multiText.includes('=')) {
-                        setMultiText(prev => {
-                            let newText = prev.trim();
-                            if (newText.endsWith(',')) {
-                                newText = newText.slice(0, -1);
-                            }
-                            return newText + '=';
-                        });
-                    } else {
-                        handleMultiTextApply();
-                    }
+                    handleMultiTextApply();
                     break;
             }
         }
@@ -629,7 +486,7 @@ export function DataEntryControls({
                     <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="e.g. 11,22,33=100 or 11,22(100) or 123*10"
+                        placeholder="Paste grid here or type: 01=100 or 01 100"
                         rows={4}
                         value={multiText}
                         onChange={handleMultiTextChange}
@@ -780,29 +637,4 @@ export function DataEntryControls({
             </Dialog>
         </>
     );
-    
-    
-    
-
-    
-
-
-
-    
-
-    
-
-
-
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
+}
