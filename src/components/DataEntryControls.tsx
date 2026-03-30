@@ -1,11 +1,10 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download, Mic } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download, Mic, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/hooks/useClients";
 import { formatNumber } from "@/lib/utils";
+import { parseGridImage } from "@/ai/flows/parse-grid-image-flow";
 
 interface DataEntryControlsProps {
     clients: Client[];
@@ -68,7 +68,9 @@ export function DataEntryControls({
     const [combinationCount, setCombinationCount] = useState(0);
     const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+    const [isScanning, setIsScanning] = useState(false);
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const multiTextRef = useRef<HTMLTextAreaElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
@@ -124,24 +126,17 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         let val = e.target.value;
-        
-        // Auto-comma logic: if the user is typing (length increasing) 
-        // and they type two digits, append a comma automatically in the numbers section
         if (val.length > multiText.length) {
-            // We only auto-format the part before any '=' sign
             const parts = val.split('=');
             if (parts.length === 1) {
                 const textBeforeEqual = parts[0];
                 const segments = textBeforeEqual.split(',');
                 const lastSegment = segments[segments.length - 1];
-                
-                // If the last segment is exactly 2 digits, append a comma
                 if (lastSegment.length === 2 && /^\d+$/.test(lastSegment)) {
                     val += ",";
                 }
             }
         }
-        
         setMultiText(val);
     };
     
@@ -374,15 +369,10 @@ export function DataEntryControls({
             if (from === 'multiText') {
                 if (!e.shiftKey) {
                     e.preventDefault();
-                    
-                    // Smart Enter Behavior:
-                    // 1. If text has '=', Apply the entry
-                    // 2. If text has no '=', remove trailing comma and add '='
                     if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim().length > 0) {
                         let processed = multiText.trim();
-                        // Strip trailing comma before adding =
                         if (processed.endsWith(',')) {
                             processed = processed.slice(0, -1);
                         }
@@ -460,6 +450,46 @@ export function DataEntryControls({
             console.error('Failed to copy: ', err);
         });
     };
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || isDataEntryDisabled) return;
+
+        setIsScanning(true);
+        toast({ title: "Scanning Image...", description: "AI is analyzing your grid sheet photo." });
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64String = reader.result as string;
+            try {
+                const result = await parseGridImage({ photoDataUri: base64String });
+                
+                if (result && result.gridData && Object.keys(result.gridData).length > 0) {
+                    let totalAmount = 0;
+                    const updates: { [key: string]: number } = {};
+                    
+                    Object.entries(result.gridData).forEach(([key, amount]) => {
+                        updates[key] = amount;
+                        totalAmount += amount;
+                    });
+
+                    if (checkBalance(totalAmount)) {
+                        onDataUpdate(updates, "AI Image Scan Entry");
+                        toast({ title: "Scan Complete", description: `Successfully extracted ${Object.keys(result.gridData).length} entries from image.` });
+                    }
+                } else {
+                    toast({ title: "Scan Failed", description: "Could not find any clear data in the image. Please try a clearer photo.", variant: "destructive" });
+                }
+            } catch (error) {
+                console.error("Scanning error:", error);
+                toast({ title: "Error Scanning Image", description: "An error occurred while analyzing the photo. Please try again.", variant: "destructive" });
+            } finally {
+                setIsScanning(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsDataURL(file);
+    };
     
     return (
         <>
@@ -494,7 +524,28 @@ export function DataEntryControls({
               <ScrollArea className="flex-grow pr-2 -mr-2">
               <div className="space-y-2 pr-2">
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Multi-Text Entry (Enter to Apply)</h3>
+                    <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-xs">Multi-Text Entry</h3>
+                        <div className="flex items-center gap-1">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 px-2 text-[10px]" 
+                                onClick={() => isDataEntryDisabled ? showClientSelectionToast() : fileInputRef.current?.click()}
+                                disabled={isScanning || isDataEntryDisabled}
+                            >
+                                {isScanning ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
+                                Scan Image
+                            </Button>
+                        </div>
+                    </div>
                     <Textarea
                         ref={multiTextRef}
                         placeholder="Type numbers (auto-comma), Enter for '=', Enter again to Apply..."
@@ -575,7 +626,7 @@ export function DataEntryControls({
                             <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                            <Checkbox id="reverse-laddi" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                             <Label htmlFor="reverse-laddi" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
                           </div>
                           <div className="flex items-center gap-1.5">
