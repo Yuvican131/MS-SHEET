@@ -138,24 +138,24 @@ export function DataEntryControls({
         
         const lines = multiText.split('\n').map(l => l.trim()).filter(l => l);
         lines.forEach(line => {
-            const parts = line.split(/[=\(\):\*x-]/);
+            const parts = line.split(/[=\s\-x*:]+/);
             if (parts.length >= 2) {
-                const amountPart = parts[parts.length - 1].replace(/[^0-9]/g, '');
-                const amount = parseInt(amountPart, 10);
+                const amount = parseFloat(parts[parts.length - 1]);
                 if (!isNaN(amount)) {
-                    const pairsPart = parts.slice(0, -1).join(',');
-                    const pairs = pairsPart.split(/[,.\s]+/).filter(p => p.length === 2 && /^\d+$/.test(p));
-                    pairs.forEach(pair => {
-                        const key = pair.padStart(2, '0');
-                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                        totalForCheck += amount;
+                    const pairs = parts.slice(0, -1);
+                    pairs.forEach(p => {
+                        const cleaned = p.replace(/[^0-9]/g, '');
+                        if (cleaned.length === 2) {
+                            finalUpdates[cleaned] = (finalUpdates[cleaned] || 0) + amount;
+                            totalForCheck += amount;
+                        }
                     });
                 }
             }
         });
 
         if (Object.keys(finalUpdates).length === 0) {
-            toast({ title: "No data processed", description: "Could not find valid patterns. Use format like 01=100 or 01-100.", variant: "destructive" });
+            toast({ title: "No data processed", description: "Use format like 01=100 or 01 100", variant: "destructive" });
             return;
         }
 
@@ -306,7 +306,8 @@ export function DataEntryControls({
     
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
-            if (from === 'multiText' && e.shiftKey) {
+            if (from === 'multiText') {
+                // Allow standard Enter behavior in multiText textarea
                 return;
             }
             e.preventDefault();
@@ -328,9 +329,6 @@ export function DataEntryControls({
                     break;
                 case 'harupAmount':
                     handleHarupApply();
-                    break;
-                case 'multiText':
-                    handleMultiTextApply();
                     break;
             }
         }
