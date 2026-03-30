@@ -27,9 +27,9 @@ export type ValidateCellContentOutput = z.infer<typeof ValidateCellContentOutput
 export async function validateCellContent(input: ValidateCellContentInput): Promise<ValidateCellContentOutput> {
   try {
     return await validateCellContentFlow(input);
-  } catch (error) {
-    // If AI fails (e.g. missing API key), we gracefully allow the entry
-    console.warn("AI Validation unavailable:", error);
+  } catch (error: any) {
+    // If AI fails (e.g. missing API key or rate limit), we gracefully allow the entry
+    console.warn("AI Validation unavailable:", error.message);
     return { isValid: true, recommendation: "" };
   }
 }

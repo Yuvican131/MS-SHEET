@@ -30,6 +30,9 @@ export async function parseGridImage(input: ParseGridImageInput): Promise<ParseG
     return await parseGridImageFlow(input);
   } catch (error: any) {
     console.error("AI Image Parsing error:", error);
+    if (error.message?.includes("RESOURCE_EXHAUSTED") || error.message?.includes("429")) {
+      throw new Error("AI Rate Limit reached. Please wait a minute and try again.");
+    }
     throw new Error(error.message || "Failed to parse image. Please ensure your GEMINI_API_KEY is configured.");
   }
 }
