@@ -25,7 +25,13 @@ const ValidateCellContentOutputSchema = z.object({
 export type ValidateCellContentOutput = z.infer<typeof ValidateCellContentOutputSchema>;
 
 export async function validateCellContent(input: ValidateCellContentInput): Promise<ValidateCellContentOutput> {
-  return validateCellContentFlow(input);
+  try {
+    return await validateCellContentFlow(input);
+  } catch (error) {
+    // If AI fails (e.g. missing API key), we gracefully allow the entry
+    console.warn("AI Validation unavailable:", error);
+    return { isValid: true, recommendation: "" };
+  }
 }
 
 const prompt = ai.definePrompt({

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -81,66 +81,7 @@ export function DataEntryControls({
     
     const isDataEntryDisabled = !selectedClientId;
 
-    useEffect(() => {
-        if(focusMultiText) {
-            focusMultiText();
-        }
-    }, [focusMultiText]);
-
-    const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
-        if (runningFlag) {
-            const start = parseInt(num1, 10);
-            const end = parseInt(num2, 10);
-            if (!isNaN(start) && !isNaN(end) && end >= start) {
-                return end - start + 1;
-            }
-            return 0;
-        }
-
-        const digits1 = num1.split('');
-        const digits2 = num2 ? num2.split('') : digits1;
-        let combinations = new Set<string>();
-
-        if (digits1.length > 0) {
-            for (const d1 of digits1) {
-                for (const d2 of digits2) {
-                    if (removeJoddaFlag && d1 === d2) continue;
-                    
-                    const pair = `${d1}${d2}`;
-                    if (num2 || d1 <= d2) {
-                        combinations.add(pair);
-                    }
-                    if (reverseFlag && d1 !== d2) {
-                        combinations.add(`${d2}${d1}`);
-                    }
-                }
-            }
-        }
-        return combinations.size;
-    };
-
-    useEffect(() => {
-        const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi);
-        setCombinationCount(count);
-    }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
-
-    const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        let val = e.target.value;
-        if (val.length > multiText.length) {
-            const parts = val.split('=');
-            if (parts.length === 1) {
-                const textBeforeEqual = parts[0];
-                const segments = textBeforeEqual.split(',');
-                const lastSegment = segments[segments.length - 1];
-                if (lastSegment.length === 2 && /^\d+$/.test(lastSegment)) {
-                    val += ",";
-                }
-            }
-        }
-        setMultiText(val);
-    };
-    
-    const handleMultiTextApply = () => {
+    const handleMultiTextApply = useCallback(() => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
             return;
@@ -224,8 +165,107 @@ export function DataEntryControls({
         onDataUpdate(updates, multiText);
         setMultiText("");
         setTimeout(() => multiTextRef.current?.focus(), 0);
+    }, [isDataEntryDisabled, multiText, onDataUpdate, checkBalance, showClientSelectionToast, toast]);
+
+    const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        let val = e.target.value;
+        // Simple auto-comma logic: every 2 digits append a comma if not already followed by one
+        // and we are not in the "amount" part (after an equals sign)
+        if (val.length > multiText.length && !val.includes('=')) {
+            const lastPart = val.split(',').pop() || '';
+            if (lastPart.length === 2 && /^\d+$/.test(lastPart)) {
+                val += ",";
+            }
+        }
+        setMultiText(val);
     };
-    
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
+        if (e.key === 'Enter') {
+            if (from === 'multiText') {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    // Intelligent Toggle: No Equals -> Add Equals. Has Equals -> Apply to sheet.
+                    if (multiText.includes('=')) {
+                        handleMultiTextApply();
+                    } else if (multiText.trim().length > 0) {
+                        let processed = multiText.trim();
+                        // Clean trailing comma before adding equals
+                        if (processed.endsWith(',')) {
+                            processed = processed.slice(0, -1);
+                        }
+                        setMultiText(processed + "=");
+                    }
+                }
+                return;
+            }
+            e.preventDefault();
+            switch (from) {
+                case 'laddiNum1':
+                    laddiNum2Ref.current?.focus();
+                    break;
+                case 'laddiNum2':
+                    laddiAmountRef.current?.focus();
+                    break;
+                case 'laddiAmount':
+                    handleLaddiApply();
+                    break;
+                case 'harupA':
+                    harupBInputRef.current?.focus();
+                    break;
+                case 'harupB':
+                    harupAmountInputRef.current?.focus();
+                    break;
+                case 'harupAmount':
+                    handleHarupApply();
+                    break;
+            }
+        }
+    };
+
+    useEffect(() => {
+        if(focusMultiText) {
+            focusMultiText();
+        }
+    }, [focusMultiText]);
+
+    const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
+        if (runningFlag) {
+            const start = parseInt(num1, 10);
+            const end = parseInt(num2, 10);
+            if (!isNaN(start) && !isNaN(end) && end >= start) {
+                return end - start + 1;
+            }
+            return 0;
+        }
+
+        const digits1 = num1.split('');
+        const digits2 = num2 ? num2.split('') : digits1;
+        let combinations = new Set<string>();
+
+        if (digits1.length > 0) {
+            for (const d1 of digits1) {
+                for (const d2 of digits2) {
+                    if (removeJoddaFlag && d1 === d2) continue;
+                    
+                    const pair = `${d1}${d2}`;
+                    if (num2 || d1 <= d2) {
+                        combinations.add(pair);
+                    }
+                    if (reverseFlag && d1 !== d2) {
+                        combinations.add(`${d2}${d1}`);
+                    }
+                }
+            }
+        }
+        return combinations.size;
+    };
+
+    useEffect(() => {
+        const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi);
+        setCombinationCount(count);
+    }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
+
     const handleLaddiApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -364,47 +404,6 @@ export function DataEntryControls({
         }
     };
     
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
-        if (e.key === 'Enter') {
-            if (from === 'multiText') {
-                if (!e.shiftKey) {
-                    e.preventDefault();
-                    if (multiText.includes('=')) {
-                        handleMultiTextApply();
-                    } else if (multiText.trim().length > 0) {
-                        let processed = multiText.trim();
-                        if (processed.endsWith(',')) {
-                            processed = processed.slice(0, -1);
-                        }
-                        setMultiText(processed + "=");
-                    }
-                }
-                return;
-            }
-            e.preventDefault();
-            switch (from) {
-                case 'laddiNum1':
-                    laddiNum2Ref.current?.focus();
-                    break;
-                case 'laddiNum2':
-                    laddiAmountRef.current?.focus();
-                    break;
-                case 'laddiAmount':
-                    handleLaddiApply();
-                    break;
-                case 'harupA':
-                    harupBInputRef.current?.focus();
-                    break;
-                case 'harupB':
-                    harupAmountInputRef.current?.focus();
-                    break;
-                case 'harupAmount':
-                    handleHarupApply();
-                    break;
-            }
-        }
-    };
-    
     const handleGenerateSheet = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -478,11 +477,11 @@ export function DataEntryControls({
                         toast({ title: "Scan Complete", description: `Successfully extracted ${Object.keys(result.gridData).length} entries from image.` });
                     }
                 } else {
-                    toast({ title: "Scan Failed", description: "Could not find any clear data in the image. Please try a clearer photo.", variant: "destructive" });
+                    toast({ title: "Scan Failed", description: "Could not find any clear data in the image. Please check your API key and ensure the photo is clear.", variant: "destructive" });
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Scanning error:", error);
-                toast({ title: "Error Scanning Image", description: "An error occurred while analyzing the photo. Please try again.", variant: "destructive" });
+                toast({ title: "Error Scanning Image", description: error.message || "An error occurred while analyzing the photo.", variant: "destructive" });
             } finally {
                 setIsScanning(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';

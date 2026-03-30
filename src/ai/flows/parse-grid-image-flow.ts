@@ -26,7 +26,12 @@ const ParseGridImageOutputSchema = z.object({
 export type ParseGridImageOutput = z.infer<typeof ParseGridImageOutputSchema>;
 
 export async function parseGridImage(input: ParseGridImageInput): Promise<ParseGridImageOutput> {
-  return parseGridImageFlow(input);
+  try {
+    return await parseGridImageFlow(input);
+  } catch (error: any) {
+    console.error("AI Image Parsing error:", error);
+    throw new Error(error.message || "Failed to parse image. Please ensure your GEMINI_API_KEY is configured.");
+  }
 }
 
 const prompt = ai.definePrompt({
