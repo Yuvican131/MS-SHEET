@@ -98,7 +98,7 @@ export function GridView({
 
                         return (
                             <div key={dataKey} className={cn(
-                                "relative flex flex-col justify-end border rounded-none transition-all grid-cell h-12 lg:h-14",
+                                "relative flex flex-col justify-end items-center border rounded-none transition-all grid-cell h-14 lg:h-16",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
                                 isUpdated ? "ring-2 ring-primary ring-inset" : "",
                                 "focus-within:ring-2 focus-within:ring-white focus-within:ring-inset focus-within:z-20"
@@ -113,7 +113,7 @@ export function GridView({
                                     onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className="p-0 pb-1 h-10 w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 grid-cell-input text-white font-black"
+                                    className="p-0 h-8 w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 grid-cell-input text-white font-black"
                                     aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
                                 {validation && !validation.isValid && !validation.isLoading && (
@@ -136,21 +136,21 @@ export function GridView({
                             </div>
                         )
                     })}
-                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell h-12 lg:h-14">
-                        <span className="text-sm text-green-500">
+                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell h-14 lg:h-16">
+                        <span className="text-sm text-green-500 font-black">
                             {rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''}
                         </span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-none bg-transparent grid-cell h-10">
-                    <span className="text-sm text-green-500">
+                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell h-10">
+                    <span className="text-sm text-green-500 font-black">
                         {columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-lg border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+            <div className="flex items-center justify-center font-black text-xl border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-10">
                 {formatNumber(grandTotal)}
             </div>
         </div>
