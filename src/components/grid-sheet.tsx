@@ -264,9 +264,9 @@ const MasterSheetViewer = ({
   
  return (
     <div className="flex flex-col md:flex-row h-full w-full bg-background overflow-hidden">
-      {/* Left side: Grid Area */}
-      <div className="flex-1 p-2 md:p-4 overflow-auto bg-muted/10">
-        <div className="grid-sheet-layout mx-auto max-w-4xl shadow-xl border bg-card rounded-md">
+      {/* Left side: Grid Area - Expanded to use more space */}
+      <div className="flex-1 p-4 md:p-6 overflow-auto bg-muted/5 flex items-start justify-center">
+        <div className="grid-sheet-layout w-full max-w-[1200px] shadow-2xl border bg-card rounded-xl p-4">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -276,164 +276,170 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey];
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex items-center border rounded-sm transition-colors duration-200",
-                                hasValue ? "bg-primary/5" : "bg-transparent"
+                                "relative flex items-center border rounded-md transition-all duration-200",
+                                hasValue ? "bg-primary/10 ring-1 ring-primary/20" : "bg-transparent"
                             )} style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-0.5 left-1 text-[0.6rem] select-none pointer-events-none z-10 font-bold opacity-60" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
-                                <div className="h-12 w-full flex items-center justify-center font-bold text-sm" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                <div className="absolute top-1 left-1.5 text-[0.7rem] select-none pointer-events-none z-10 font-black opacity-40" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
+                                <div className="h-16 w-full flex items-center justify-center font-black text-base lg:text-lg" style={{ color: 'var(--grid-cell-amount-color)' }}>
                                     {masterSheetData[dataKey] ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
                             </div>
                         );
                     })}
-                    <div className="flex items-center justify-center font-bold border rounded-sm bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                        <span className="text-[0.7rem] sm:text-xs" style={{ color: 'var(--grid-cell-total-color)' }}>
+                    <div className="flex items-center justify-center font-black border rounded-md bg-muted/20" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                        <span className="text-[0.75rem] lg:text-sm font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-10 border rounded-sm bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                     <span className="text-[0.7rem] sm:text-xs" style={{ color: 'var(--grid-cell-total-color)' }}>
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-12 border rounded-md bg-muted/20" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                     <span className="text-[0.75rem] lg:text-sm font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-sm border rounded-sm bg-primary/10" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+            <div className="flex items-center justify-center font-black text-base border rounded-md bg-primary/20" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
       </div>
 
-      {/* Right side: Control Center */}
-      <div className="w-full md:w-[360px] border-l bg-card flex flex-col shadow-2xl z-10">
+      {/* Right side: Control Center - Optimized Sidebar */}
+      <div className="w-full md:w-[400px] border-l bg-card flex flex-col shadow-[-10px_0_20px_rgba(0,0,0,0.05)] z-10">
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-6">
+          <div className="p-6 space-y-8">
             {/* Adjustment Section */}
-            <Card className="border-none shadow-none bg-transparent">
-              <CardHeader className="p-0 pb-3 flex flex-row items-center gap-2">
-                <Settings2 className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-bold uppercase tracking-wider">Adjustments</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 space-y-4">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border">
-                    <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings2 className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Adjustments</h3>
+              </div>
+              
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border">
+                    <div className="flex items-center gap-3">
                         <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
-                        <Label htmlFor="comm-less" className="text-xs font-semibold">Comm Less</Label>
+                        <Label htmlFor="comm-less" className="text-xs font-black uppercase tracking-tight">Comm Less</Label>
                     </div>
-                    <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold">
-                        <RotateCcw className="h-3 w-3 mr-1" /> Reset
+                    <Button onClick={() => setMasterSheetData(initialMasterData)} variant="outline" size="sm" className="h-8 text-[10px] uppercase font-black border-primary/20 text-primary hover:bg-primary/10">
+                        <RotateCcw className="h-3 w-3 mr-1" /> Reset All
                     </Button>
                 </div>
-                
-                <div className="grid gap-3">
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Cutting Value</Label>
-                        <div className="flex gap-2">
-                            <Input placeholder="0" className="h-9 font-bold" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                            <Button onClick={handleApplyCutting} size="sm" className="h-9 px-4">Apply</Button>
-                        </div>
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Less Percentage (%)</Label>
-                        <div className="flex gap-2">
-                            <Input placeholder="0%" className="h-9 font-bold" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                            <Button onClick={handleApplyLess} size="sm" className="h-9 px-4">Apply</Button>
-                        </div>
+
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Cutting Value</Label>
+                    <div className="flex gap-2">
+                        <Input placeholder="0" className="h-11 font-black text-lg focus:ring-primary" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                        <Button onClick={handleApplyCutting} className="h-11 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
                     </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Less Percentage (%)</Label>
+                    <div className="flex gap-2">
+                        <Input placeholder="0%" className="h-11 font-black text-lg focus:ring-primary" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                        <Button onClick={handleApplyLess} className="h-11 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
+                    </div>
+                </div>
+              </div>
+            </div>
 
             {/* Performance Summary Section */}
-            <Card className="bg-primary/5 border-primary/20">
-              <CardHeader className="p-3 pb-1">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <Receipt className="h-3 w-3" /> Profit & Loss View
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 pt-2">
-                <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+               <div className="flex items-center gap-2 mb-2">
+                <Receipt className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Performance</h3>
+              </div>
+              
+              <div className="rounded-2xl border bg-primary/5 p-5 space-y-5">
+                <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-1">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Original</p>
-                        <p className="text-lg font-black tracking-tight">₹{formatNumber(initialGrandTotal)}</p>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Original</p>
+                        <p className="text-xl font-black tracking-tighter">₹{formatNumber(initialGrandTotal)}</p>
                     </div>
                     <div className="space-y-1 text-right">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Adjusted</p>
-                        <p className="text-lg font-black tracking-tight">₹{formatNumber(masterSheetGrandTotal)}</p>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Adjusted</p>
+                        <p className="text-xl font-black tracking-tighter">₹{formatNumber(masterSheetGrandTotal)}</p>
                     </div>
                 </div>
-                <Separator className="my-3 bg-primary/20" />
+                <Separator className="bg-primary/20" />
                 <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase text-primary">Broker Profit</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Broker Net Profit</span>
                     <Badge className={cn(
-                        "text-sm font-black py-1 px-3",
+                        "text-base font-black py-1.5 px-4 rounded-full shadow-lg",
                         netProfit >= 0 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
                     )}>
                         {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
                     </Badge>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Client Logs Section */}
-            <Card className="border-none shadow-none bg-transparent">
-               <CardHeader className="p-0 pb-3 flex flex-row items-center gap-2">
-                <ListChecks className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-bold uppercase tracking-wider">Included Clients</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                  <div className="space-y-1.5">
-                      {currentLogs.length > 0 ? currentLogs.map((log, index) => (
-                          <div key={log.id} className="flex items-center justify-between p-2.5 rounded-md border bg-card hover:bg-muted/30 transition-colors group">
-                              <div className="flex items-center gap-3 min-w-0">
-                                  <Checkbox
-                                      id={`log-master-${index}`}
-                                      checked={selectedLogIndices.includes(index)}
-                                      onCheckedChange={() => handleLogSelectionChange(index)}
-                                  />
-                                  <label htmlFor={`log-master-${index}`} className="text-xs font-bold truncate cursor-pointer uppercase">
-                                    {log.clientName}
-                                  </label>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <span className="text-xs font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => onDeleteLog(log.id, log.clientName)}>
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                              </div>
+            <div className="space-y-4">
+               <div className="flex items-center gap-2 mb-2">
+                <ListChecks className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Active Clients</h3>
+              </div>
+              
+              <div className="space-y-2">
+                  {currentLogs.length > 0 ? currentLogs.map((log, index) => (
+                      <div key={log.id} className={cn(
+                          "flex items-center justify-between p-3.5 rounded-xl border transition-all group",
+                          selectedLogIndices.includes(index) ? "bg-card border-primary/30 shadow-sm" : "bg-muted/10 opacity-60 border-transparent"
+                      )}>
+                          <div className="flex items-center gap-3 min-w-0">
+                              <Checkbox
+                                  id={`log-master-${index}`}
+                                  checked={selectedLogIndices.includes(index)}
+                                  onCheckedChange={() => handleLogSelectionChange(index)}
+                                  className="h-5 w-5"
+                              />
+                              <label htmlFor={`log-master-${index}`} className="text-xs font-black truncate cursor-pointer uppercase tracking-tight">
+                                {log.clientName}
+                              </label>
                           </div>
-                      )) : (
-                          <div className="text-center py-10 text-muted-foreground/40 italic flex flex-col items-center gap-2">
-                              <AlertCircle className="h-8 w-8" />
-                              <p className="text-xs font-bold uppercase tracking-tighter">No logs found</p>
+                          <div className="flex items-center gap-3">
+                              <span className="text-xs font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive transition-opacity" onClick={() => onDeleteLog(log.id, log.clientName)}>
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
                           </div>
-                      )}
-                  </div>
-              </CardContent>
-            </Card>
+                      </div>
+                  )) : (
+                      <div className="text-center py-16 text-muted-foreground/30 flex flex-col items-center gap-3">
+                          <AlertCircle className="h-10 w-10" />
+                          <p className="text-xs font-black uppercase tracking-widest">No Client Data Available</p>
+                      </div>
+                  )}
+              </div>
+            </div>
           </div>
         </ScrollArea>
 
-        {/* Fixed Footer */}
-        <div className="p-4 border-t bg-muted/10">
-          <Button onClick={handleGenerateSheet} className="w-full h-12 text-sm font-black uppercase tracking-widest shadow-lg">
-            <Download className="mr-2 h-4 w-4" /> Generate Sheet
+        {/* Fixed Footer - High Visibility */}
+        <div className="p-6 border-t bg-card/80 backdrop-blur-sm">
+          <Button onClick={handleGenerateSheet} className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(var(--primary),0.3)] hover:scale-[1.02] transition-transform">
+            <Download className="mr-3 h-5 w-5" /> Generate Master Sheet
           </Button>
         </div>
       </div>
 
       {/* Generated Sheet Dialog */}
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Master Sheet Output</DialogTitle></DialogHeader>
-          <div className="my-4">
-            <Textarea readOnly value={generatedSheetContent} rows={12} className="bg-muted font-mono text-sm leading-relaxed" />
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Master Sheet Export</DialogTitle>
+            <DialogDescription className="text-xs uppercase font-bold tracking-widest text-primary">{props.draw} | {format(date, 'PPP')}</DialogDescription>
+          </DialogHeader>
+          <div className="my-6">
+            <Textarea readOnly value={generatedSheetContent} rows={16} className="bg-muted font-mono text-sm leading-relaxed p-4 rounded-xl border-none focus:ring-0" />
           </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}><Copy className="mr-2 h-4 w-4" /> Copy Content</Button>
+          <DialogFooter className="sm:justify-between gap-4">
+            <DialogClose asChild><Button variant="outline" className="h-12 px-8 font-black uppercase text-xs tracking-widest">Close</Button></DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="h-12 px-8 font-black uppercase text-xs tracking-widest"><Copy className="mr-2 h-4 w-4" /> Copy To Clipboard</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
