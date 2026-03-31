@@ -12,7 +12,7 @@ import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw,
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { format, isSameDay } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager";
@@ -98,7 +98,6 @@ const MasterSheetViewer = ({
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
   const [cuttingValue, setCuttingValue] = useState("");
   const [lessValue, setLessValue] = useState("");
-  const [dabbaValue, setDabbaValue] = useState("");
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
