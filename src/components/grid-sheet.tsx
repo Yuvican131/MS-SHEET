@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, AlertCircle, Trash2, Copy, X, RotateCcw, Eye, ArrowLeft, Grid, Edit, Settings2, Receipt, ListChecks } from "lucide-react"
+import { Download, AlertCircle, Trash2, Copy, X, RotateCcw, Eye, ArrowLeft, Grid, Edit, Settings2, Receipt, ListChecks, CheckCircle2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -83,6 +83,7 @@ const MasterSheetViewer = ({
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
   const [cuttingValue, setCuttingValue] = useState("");
   const [lessValue, setLessValue] = useState("");
+  const [dabbaValue, setDabbaValue] = useState("");
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
@@ -117,7 +118,7 @@ const MasterSheetViewer = ({
           if (showCommissionLess) {
             const commission = numericValue * commissionRate;
             const netValue = numericValue - commission;
-            valueToAdd = Math.round(netValue / 5) * 5;
+            valueToAdd = Math.round(netValue);
           }
 
           const existingValue = parseFloat(newMasterData[key]) || 0;
@@ -159,43 +160,38 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   const netProfit = initialGrandTotal - masterSheetGrandTotal;
 
-  const handleApplyCutting = () => {
-    const cutValue = parseFloat(cuttingValue);
-    if (isNaN(cutValue)) {
-      toast({ title: "Invalid Input", description: "Please enter a valid number for cutting.", variant: "destructive" });
-      return;
+  const handleApplyAdjustment = (type: 'cutting' | 'less' | 'dabba') => {
+    let value: number;
+    const newMasterData = { ...masterSheetData };
+
+    if (type === 'cutting') {
+      value = parseFloat(cuttingValue);
+      if (isNaN(value)) return;
+      Object.keys(newMasterData).forEach(key => {
+        const val = parseFloat(newMasterData[key]) || 0;
+        if (val !== 0) newMasterData[key] = String(Math.max(0, val - value));
+      });
+      setCuttingValue("");
+    } else if (type === 'less') {
+      value = parseFloat(lessValue);
+      if (isNaN(value)) return;
+      Object.keys(newMasterData).forEach(key => {
+        const val = parseFloat(newMasterData[key]) || 0;
+        if (val !== 0) newMasterData[key] = String(val * (1 - value / 100));
+      });
+      setLessValue("");
+    } else if (type === 'dabba') {
+      value = parseFloat(dabbaValue);
+      if (isNaN(value)) return;
+      Object.keys(newMasterData).forEach(key => {
+        const val = parseFloat(newMasterData[key]) || 0;
+        if (val !== 0) newMasterData[key] = String(val + value);
+      });
+      setDabbaValue("");
     }
 
-    const newMasterData = { ...masterSheetData };
-    Object.keys(newMasterData).forEach(key => {
-      const cellValue = parseFloat(newMasterData[key]) || 0;
-      if (cellValue !== 0) {
-          newMasterData[key] = String(cellValue - cutValue);
-      }
-    });
     setMasterSheetData(newMasterData);
-    toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all active cells.` });
-    setCuttingValue("");
-  };
-
-  const handleApplyLess = () => {
-    const lessPercent = parseFloat(lessValue);
-    if (isNaN(lessPercent) || lessPercent < 0 || lessPercent > 100) {
-      toast({ title: "Invalid Input", description: "Please enter a valid percentage (0-100).", variant: "destructive" });
-      return;
-    }
-
-    const newMasterData = { ...masterSheetData };
-    Object.keys(newMasterData).forEach(key => {
-      const cellValue = parseFloat(newMasterData[key]) || 0;
-      if (cellValue !== 0) {
-        const reduction = cellValue * (lessPercent / 100);
-        newMasterData[key] = String(cellValue - reduction);
-      }
-    });
-    setMasterSheetData(newMasterData);
-    toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all active cells.` });
-    setLessValue("");
+    toast({ title: "Adjustment Applied", description: `Applied ${type} to all active cells.` });
   };
 
   const handleLogSelectionChange = (index: number) => {
@@ -214,10 +210,11 @@ const MasterSheetViewer = ({
         const dataKey = i === 100 ? '00' : displayKey;
         const value = masterSheetData[dataKey];
         if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
-            if (!valueToCells[value]) {
-                valueToCells[value] = [];
+            const roundedVal = String(Math.round(parseFloat(value)));
+            if (!valueToCells[roundedVal]) {
+                valueToCells[roundedVal] = [];
             }
-            valueToCells[value].push(displayKey);
+            valueToCells[roundedVal].push(displayKey);
         }
     }
 
@@ -247,9 +244,9 @@ const MasterSheetViewer = ({
   
  return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-background overflow-hidden">
-      {/* Expanded Grid Section */}
-      <div className="flex-1 p-4 lg:p-8 overflow-auto bg-muted/5 flex items-stretch">
-        <div className="grid-sheet-layout w-full h-full shadow-2xl border bg-card rounded-2xl p-6 lg:p-10">
+      {/* Expansive Grid Section */}
+      <div className="flex-1 p-2 lg:p-4 overflow-auto bg-black flex items-stretch">
+        <div className="grid-sheet-layout w-full h-full border border-zinc-800 bg-zinc-950/50 rounded-lg p-2 lg:p-4 shadow-2xl">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -259,141 +256,121 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey] && parseFloat(masterSheetData[dataKey]) !== 0;
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex items-center border rounded-xl transition-all duration-300 min-h-[50px] lg:min-h-0",
-                                hasValue ? "bg-primary/10 ring-2 ring-primary/20 shadow-inner" : "bg-transparent"
-                            )} style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-2 left-3 text-[0.8rem] lg:text-[1rem] select-none pointer-events-none z-10 font-black opacity-40" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
-                                <div className="h-full w-full flex items-center justify-center font-black text-xl lg:text-3xl" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                "relative flex items-center justify-center border border-zinc-800 rounded-lg transition-all min-h-[40px] lg:min-h-0",
+                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent"
+                            )}>
+                                <div className="absolute top-1 left-1.5 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="font-black text-sm sm:text-base lg:text-lg text-white">
                                     {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
                             </div>
                         );
                     })}
-                    <div className="flex items-center justify-center font-black border rounded-xl bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                        <span className="text-sm lg:text-xl font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
+                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-lg bg-transparent">
+                        <span className="text-xs sm:text-sm text-green-500">
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-12 lg:h-auto border rounded-xl bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                     <span className="text-sm lg:text-xl font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-8 lg:h-auto border border-zinc-800 rounded-lg bg-transparent">
+                     <span className="text-xs sm:text-sm text-green-500">
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-2xl lg:text-5xl border rounded-xl bg-primary/25 shadow-lg" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+            <div className="flex items-center justify-center font-black text-lg sm:text-xl border-2 border-green-500/50 rounded-lg bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
       </div>
 
-      {/* Action Sidebar */}
-      <div className="w-full lg:w-[420px] border-l bg-card flex flex-col shadow-[-15px_0_40px_rgba(0,0,0,0.12)] z-10">
+      {/* Professional Sidebar */}
+      <div className="w-full lg:w-[380px] border-l border-zinc-800 bg-zinc-950 flex flex-col z-10">
         <ScrollArea className="flex-1">
-          <div className="p-6 lg:p-10 space-y-10">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Settings2 className="h-7 w-7 text-primary" />
-                    <h3 className="text-xs font-black uppercase tracking-[0.25em] text-foreground">Command Sidebar</h3>
-                </div>
-                <Button onClick={() => setMasterSheetData(initialMasterData)} variant="outline" size="sm" className="h-10 px-5 text-[11px] uppercase font-black border-primary/30 text-primary hover:bg-primary/10 rounded-full">
-                    <RotateCcw className="h-4 w-4 mr-2" /> Reset
-                </Button>
+          <div className="p-4 lg:p-6 space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Manual Controls</h3>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+                  <div className="flex items-center gap-3">
+                      <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
+                      <Label htmlFor="comm-less" className="text-xs font-bold text-zinc-300">Show Commission Less</Label>
+                  </div>
+                  <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg">
+                      <RotateCcw className="h-4 w-4" />
+                  </Button>
               </div>
-              
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between p-6 rounded-3xl bg-muted/30 border-2 border-dashed border-primary/20">
-                    <div className="flex items-center gap-5">
-                        <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
-                        <Label htmlFor="comm-less" className="text-xs font-black uppercase tracking-widest cursor-pointer">Commission Less</Label>
-                    </div>
-                </div>
 
-                <div className="space-y-4">
-                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Cutting (Minus Flat)</Label>
-                    <div className="flex gap-4">
-                        <Input placeholder="0" className="h-16 font-black text-2xl focus:ring-primary rounded-2xl" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                        <Button onClick={handleApplyCutting} className="h-16 px-10 font-black uppercase text-xs tracking-widest rounded-2xl">Apply</Button>
-                    </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Cutting</Label>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('cutting')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
                 </div>
-
-                <div className="space-y-4">
-                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Less (%) (Reduction)</Label>
-                    <div className="flex gap-4">
-                        <Input placeholder="0%" className="h-16 font-black text-2xl focus:ring-primary rounded-2xl" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                        <Button onClick={handleApplyLess} className="h-16 px-10 font-black uppercase text-xs tracking-widest rounded-2xl">Apply</Button>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Less (%)</Label>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('less')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Dabba</Label>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('dabba')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-               <div className="flex items-center gap-4">
-                <Receipt className="h-7 w-7 text-primary" />
-                <h3 className="text-xs font-black uppercase tracking-[0.25em] text-foreground">Real-time Performance</h3>
-              </div>
-              
-              <div className="rounded-[2.5rem] border-2 bg-primary/[0.04] p-10 space-y-10">
-                <div className="grid grid-cols-2 gap-12">
-                    <div className="space-y-3">
-                        <p className="text-[11px] text-muted-foreground font-black uppercase tracking-[0.25em]">Initial Sum</p>
-                        <p className="text-3xl font-black tracking-tighter opacity-70">₹{formatNumber(initialGrandTotal)}</p>
+            <Card className="bg-zinc-900 border-zinc-800 rounded-xl overflow-hidden shadow-xl">
+                <div className="p-3 bg-zinc-950 border-b border-zinc-800 text-center">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Profit/Loss Summary</span>
+                </div>
+                <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-zinc-400">Original Total</span>
+                        <span className="text-xs font-bold text-zinc-200">₹{formatNumber(initialGrandTotal)}</span>
                     </div>
-                    <div className="space-y-3 text-right">
-                        <p className="text-[11px] text-muted-foreground font-black uppercase tracking-[0.25em]">Master Sum</p>
-                        <p className="text-3xl font-black tracking-tighter">₹{formatNumber(masterSheetGrandTotal)}</p>
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-zinc-400">Adjusted Total</span>
+                        <span className="text-xs font-bold text-zinc-200">₹{formatNumber(masterSheetGrandTotal)}</span>
+                    </div>
+                    <Separator className="bg-zinc-800" />
+                    <div className="flex justify-between items-center pt-1">
+                        <span className="text-sm font-bold text-zinc-100">Net Profit/Loss</span>
+                        <span className={cn(
+                            "text-sm font-black",
+                            netProfit >= 0 ? "text-green-500" : "text-red-500"
+                        )}>
+                            {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
+                        </span>
                     </div>
                 </div>
-                <Separator className="bg-primary/20" />
-                <div className="flex flex-col gap-5 bg-background/60 p-8 rounded-3xl border-2 border-dashed border-primary/30 shadow-sm">
-                    <span className="text-[13px] font-black uppercase tracking-[0.35em] text-primary text-center">Net Operating Profit</span>
-                    <Badge className={cn(
-                        "text-2xl font-black py-6 px-12 rounded-2xl shadow-2xl justify-center transition-all",
-                        netProfit >= 0 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
-                    )}>
-                        {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
-                    </Badge>
-                </div>
-              </div>
-            </div>
+            </Card>
 
-            <div className="space-y-6">
-               <div className="flex items-center gap-4">
-                <ListChecks className="h-7 w-7 text-primary" />
-                <h3 className="text-xs font-black uppercase tracking-[0.25em] text-foreground">Batch Logs</h3>
-              </div>
-              
-              <div className="space-y-5">
+            <div className="space-y-4">
+               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Client Entries for {format(date, 'MMMM do, yyyy')}</h3>
+              <div className="space-y-2">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                       <div key={log.id} className={cn(
-                          "flex items-center justify-between p-6 rounded-3xl border-2 transition-all group",
-                          selectedLogIndices.includes(index) ? "bg-card border-primary/50 shadow-2xl ring-4 ring-primary/5" : "bg-muted/10 opacity-40 border-transparent hover:opacity-100"
+                          "flex items-center justify-between p-3 rounded-xl border transition-all",
+                          selectedLogIndices.includes(index) ? "bg-zinc-900 border-green-500/30" : "bg-zinc-900/40 border-transparent opacity-50"
                       )}>
-                          <div className="flex items-center gap-6 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0">
                               <Checkbox
                                   id={`log-master-${index}`}
                                   checked={selectedLogIndices.includes(index)}
                                   onCheckedChange={() => handleLogSelectionChange(index)}
-                                  className="h-8 w-8 rounded-xl"
+                                  className="h-5 w-5 rounded-full border-zinc-700 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                               />
-                              <label htmlFor={`log-master-${index}`} className="text-[14px] font-black truncate cursor-pointer uppercase tracking-tight">
-                                {log.clientName}
+                              <label htmlFor={`log-master-${index}`} className="text-xs font-bold truncate text-zinc-300">
+                                {index + 1}. {log.clientName}
                               </label>
                           </div>
-                          <div className="flex items-center gap-5">
-                              <span className="text-lg font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
-                              <Button variant="ghost" size="icon" className="h-11 w-11 opacity-0 group-hover:opacity-100 text-destructive transition-opacity hover:bg-destructive/10 rounded-full" onClick={() => onDeleteLog(log.id, log.clientName)}>
-                                  <Trash2 className="h-6 w-6" />
-                              </Button>
-                          </div>
+                          <span className="text-xs font-black text-zinc-100">₹{formatNumber(log.gameTotal)}</span>
                       </div>
                   )) : (
-                      <div className="text-center py-32 text-muted-foreground/30 flex flex-col items-center gap-8 border-2 border-dashed rounded-[3rem]">
-                          <AlertCircle className="h-20 w-20" />
-                          <p className="text-[12px] font-black uppercase tracking-[0.4em]">Awaiting Data Feed</p>
+                      <div className="text-center py-10 text-zinc-600 border border-dashed border-zinc-800 rounded-xl">
+                          <p className="text-[10px] font-bold uppercase tracking-widest">No entries found</p>
                       </div>
                   )}
               </div>
@@ -401,25 +378,25 @@ const MasterSheetViewer = ({
           </div>
         </ScrollArea>
 
-        <div className="p-8 lg:p-10 border-t bg-card/95 backdrop-blur-xl">
-          <Button onClick={handleGenerateSheet} className="w-full h-24 text-xl font-black uppercase tracking-[0.35em] shadow-[0_25px_50px_rgba(var(--primary),0.4)] hover:scale-[1.03] active:scale-95 transition-all rounded-[2.5rem] border-b-8 border-primary-foreground/15">
-            <Download className="mr-5 h-8 w-8" /> Finalize Master
+        <div className="p-4 border-t border-zinc-800 bg-zinc-950">
+          <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+            <Download className="mr-2 h-4 w-4" /> Generate & Download Report
           </Button>
         </div>
       </div>
 
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-        <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-10">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="text-5xl font-black uppercase tracking-tight">Log Export</DialogTitle>
-            <DialogDescription className="text-sm uppercase font-black tracking-[0.5em] text-primary mt-3">{draw} | {format(date, 'PPPP')}</DialogDescription>
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Generated Report</DialogTitle>
+            <DialogDescription>{draw} | {format(date, 'PPPP')}</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 my-10 min-h-0">
-            <Textarea readOnly value={generatedSheetContent} className="h-full bg-muted font-mono text-xl leading-relaxed p-10 rounded-[3rem] border-none shadow-inner resize-none focus:ring-0" />
+          <div className="flex-1 my-4 min-h-0">
+            <Textarea readOnly value={generatedSheetContent} className="h-full bg-zinc-900 font-mono text-sm leading-relaxed p-4 rounded-xl border-zinc-800 resize-none" />
           </div>
-          <DialogFooter className="sm:justify-between gap-8 shrink-0">
-            <DialogClose asChild><Button variant="outline" className="h-20 px-16 font-black uppercase text-sm tracking-widest rounded-3xl">Dismiss</Button></DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="h-20 px-16 font-black uppercase text-lg tracking-widest rounded-3xl flex-1 shadow-2xl"><Copy className="mr-5 h-7 w-7" /> Copy to clipboard</Button>
+          <DialogFooter className="sm:justify-between gap-4">
+            <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="flex-1">Copy to Clipboard</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -738,23 +715,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="w-full h-[98vh] p-0 border-0 sm:max-w-[98vw] overflow-hidden flex flex-col rounded-none md:rounded-2xl">
-          <DialogHeader className="flex flex-row items-center justify-between px-10 py-8 border-b shrink-0 bg-card">
-            <div className="flex items-center gap-10">
-                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-14 w-14 hover:bg-muted/50 rounded-full">
-                    <ArrowLeft className="h-8 w-8" />
+        <DialogContent className="w-full h-full p-0 border-0 sm:max-w-none overflow-hidden flex flex-col rounded-none">
+          <DialogHeader className="flex flex-row items-center justify-between px-6 py-3 border-b border-zinc-800 shrink-0 bg-zinc-950">
+            <div className="flex items-center gap-6">
+                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-zinc-800 rounded-full text-zinc-100">
+                    <ArrowLeft className="h-6 w-6" />
                     <span className="sr-only">Back</span>
                 </Button>
                 <div>
-                    <DialogTitle className="text-4xl font-black uppercase tracking-tight text-foreground">Operational Master</DialogTitle>
-                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.4em]">{props.draw} | {format(props.date, 'PPPP')}</p>
+                    <DialogTitle className="text-xl font-bold text-zinc-100">Master Sheet : {props.draw}</DialogTitle>
                 </div>
             </div>
-            <div className="flex items-center gap-8">
-                <Badge className="h-14 px-10 font-black bg-primary/20 text-primary border-primary/30 text-xl uppercase tracking-widest">{props.draw}</Badge>
-            </div>
+             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-8 w-8 hover:bg-zinc-800 rounded-lg text-zinc-400">
+                <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
-           <div className="flex-1 overflow-hidden bg-background">
+           <div className="flex-1 overflow-hidden bg-zinc-950">
                 <MasterSheetViewer 
                     allSavedLogs={props.savedSheetLog}
                     draw={props.draw}
