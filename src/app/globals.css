@@ -94,19 +94,19 @@ body {
   }
   
   .grid-sheet-layout .grid-cell {
-    min-height: 36px;
+    min-height: 48px; /* Increased from 36px */
   }
 
   .grid-sheet-layout .grid-cell-number {
-     font-size: 0.8rem; 
+     font-size: 1.1rem; /* Slightly larger */
   }
 
   .grid-sheet-layout .grid-cell-input {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .grid-sheet-layout .grid-cell-total {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
   }
 }
 

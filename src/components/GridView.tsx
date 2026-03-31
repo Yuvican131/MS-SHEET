@@ -98,12 +98,12 @@ export function GridView({
 
                         return (
                             <div key={dataKey} className={cn(
-                                "relative flex flex-col justify-end border rounded-none transition-all grid-cell",
+                                "relative flex flex-col justify-end border rounded-none transition-all grid-cell h-12 lg:h-14",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
                                 isUpdated ? "ring-2 ring-primary ring-inset" : "",
                                 "focus-within:ring-2 focus-within:ring-white focus-within:ring-inset focus-within:z-20"
                             )}>
-                                <div className="absolute top-0.5 left-1 text-base select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="absolute top-1 left-1.5 text-base select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <Input
                                     id={`cell-${dataKey}`}
                                     type="text"
@@ -113,7 +113,7 @@ export function GridView({
                                     onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className="p-0 pb-1 h-8 w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 grid-cell-input text-white font-black"
+                                    className="p-0 pb-1 h-10 w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 grid-cell-input text-white font-black"
                                     aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
                                 {validation && !validation.isValid && !validation.isLoading && (
@@ -136,7 +136,7 @@ export function GridView({
                             </div>
                         )
                     })}
-                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell">
+                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell h-12 lg:h-14">
                         <span className="text-sm text-green-500">
                             {rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''}
                         </span>
@@ -144,7 +144,7 @@ export function GridView({
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-none bg-transparent grid-cell">
+                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-none bg-transparent grid-cell h-10">
                     <span className="text-sm text-green-500">
                         {columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''}
                     </span>
