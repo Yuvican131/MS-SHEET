@@ -41,10 +41,10 @@ body {
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 0 0% 98%;
-    --grid-cell-border-color: 240 3.7% 20%;
-    --grid-cell-number-color: hsl(210 90% 65%);
-    --grid-cell-amount-color: hsl(0 0% 98%);
-    --grid-cell-total-color: hsl(120 70% 45%);
+    --grid-cell-border-color: 240 4% 16%; /* zinc-800 */
+    --grid-cell-number-color: 187 71% 57%; /* cyan-400 */
+    --grid-cell-amount-color: 0 0% 100%; /* white */
+    --grid-cell-total-color: 142 71% 45%; /* green-500 */
     --grid-cell-focus-ring-color: 35 90% 45%;
   }
   .light {
@@ -67,23 +67,10 @@ body {
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 150 59% 46%;
-    --chart-1: 222.2 84% 4.9%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 240 5.9% 10%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 240 10% 3.9%;
-    --grid-cell-border-color: 240 5.9% 90%;
-    --grid-cell-number-color: hsl(210 90% 65%);
-    --grid-cell-amount-color: hsl(240 10% 3.9%);
-    --grid-cell-total-color: hsl(150, 70%, 35%);
+    --grid-cell-border-color: 240 4% 16%;
+    --grid-cell-number-color: 187 71% 57%;
+    --grid-cell-amount-color: 0 0% 100%;
+    --grid-cell-total-color: 142 71% 45%;
     --grid-cell-focus-ring-color: 150 59% 46%;
     --radius: 0.8rem;
   }
@@ -103,10 +90,11 @@ body {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
     grid-template-rows: repeat(11, minmax(0, 1fr));
+    gap: 2px;
   }
   
   .grid-sheet-layout .grid-cell {
-    min-height: 32px;
+    min-height: 36px;
   }
 
   .grid-sheet-layout .grid-cell-number {

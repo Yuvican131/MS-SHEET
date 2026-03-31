@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -244,7 +243,6 @@ const MasterSheetViewer = ({
   
  return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-background overflow-hidden">
-      {/* Expansive Grid Section */}
       <div className="flex-1 p-2 lg:p-4 overflow-auto bg-black flex items-stretch">
         <div className="grid-sheet-layout w-full h-full border border-zinc-800 bg-zinc-950/50 rounded-lg p-2 lg:p-4 shadow-2xl">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -257,7 +255,7 @@ const MasterSheetViewer = ({
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
                                 "relative flex items-center justify-center border border-zinc-800 rounded-lg transition-all min-h-[40px] lg:min-h-0",
-                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent"
+                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
                             )}>
                                 <div className="absolute top-1 left-1.5 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <div className="font-black text-sm sm:text-base lg:text-lg text-white">
@@ -286,7 +284,6 @@ const MasterSheetViewer = ({
         </div>
       </div>
 
-      {/* Professional Sidebar */}
       <div className="w-full lg:w-[380px] border-l border-zinc-800 bg-zinc-950 flex flex-col z-10">
         <ScrollArea className="flex-1">
           <div className="p-4 lg:p-6 space-y-6">
