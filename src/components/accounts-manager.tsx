@@ -1,4 +1,3 @@
-
 "use client"
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -211,28 +210,29 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                       key={account.id}
                       onClick={() => setSelectedAccountId(account.id)}
                       className={cn(
-                        "w-full text-left p-3 rounded-lg transition-all flex items-center group",
+                        "w-full text-left p-3 rounded-lg transition-all flex items-center group relative",
                         isActive 
-                          ? "bg-primary text-primary-foreground shadow-md" 
+                          ? "bg-muted ring-2 ring-primary ring-inset shadow-sm" 
                           : "hover:bg-muted"
                       )}
                     >
                       <div className="flex items-center justify-between w-full min-w-0 pr-2">
-                        <span className="font-black truncate text-sm uppercase tracking-tight flex-1">
+                        <span className={cn(
+                          "font-black truncate text-sm uppercase tracking-tight flex-1",
+                          isActive ? "text-primary" : "text-foreground"
+                        )}>
                           {account.clientName}
                         </span>
                         <span className={cn(
                           "text-base font-black tabular-nums whitespace-nowrap ml-2",
-                          isActive 
-                            ? (balanceValue >= 0 ? "text-primary-foreground" : "text-destructive") 
-                            : (balanceValue >= 0 ? "text-primary" : "text-destructive")
+                          balanceValue >= 0 ? "text-primary" : "text-destructive"
                         )}>
                           ₹{formatNumber(balanceValue)}
                         </span>
                       </div>
                       <ChevronRight className={cn(
                         "h-4 w-4 shrink-0 transition-transform",
-                        isActive ? "translate-x-1" : "opacity-0 group-hover:opacity-100"
+                        isActive ? "translate-x-1 text-primary" : "opacity-0 group-hover:opacity-100"
                       )} />
                     </button>
                   )
