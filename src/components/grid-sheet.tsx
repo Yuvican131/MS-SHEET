@@ -243,8 +243,8 @@ const MasterSheetViewer = ({
   
  return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-background overflow-hidden">
-      <div className="flex-1 p-2 lg:p-4 overflow-auto bg-black flex items-stretch">
-        <div className="grid-sheet-layout w-full h-full border border-zinc-800 bg-zinc-950/50 rounded-none p-2 lg:p-4 shadow-2xl">
+      <div className="flex-1 p-1 lg:p-2 overflow-hidden bg-black flex flex-col">
+        <div className="grid-sheet-layout w-full border border-zinc-800 bg-zinc-950 rounded-none p-1 shadow-2xl flex-grow min-h-0">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -254,37 +254,37 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey] && parseFloat(masterSheetData[dataKey]) !== 0;
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex flex-col justify-end items-center border border-zinc-800 rounded-none transition-all h-14 lg:h-16 pb-1",
-                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
+                                "relative flex flex-col justify-end items-center border border-zinc-800 rounded-none transition-all h-full min-h-0 pb-0.5",
+                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]" : "bg-transparent"
                             )}>
-                                <div className="absolute top-1 left-1.5 text-base select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
-                                <div className="font-black text-sm sm:text-base lg:text-lg text-white">
+                                <div className="absolute top-0.5 left-1 text-[11px] lg:text-[13px] select-none pointer-events-none z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
+                                <div className="font-black text-xs lg:text-lg text-white">
                                     {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
                             </div>
                         );
                     })}
-                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent h-14 lg:h-16">
-                        <span className="text-sm text-green-500 font-black">
+                    <div className="flex items-center justify-center font-black border border-zinc-800 rounded-none bg-zinc-900/50 h-full min-h-0 overflow-hidden">
+                        <span className="text-[10px] lg:text-xs text-green-500 font-black px-0.5">
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-10 border border-zinc-800 rounded-none bg-transparent">
-                     <span className="text-sm text-green-500 font-black">
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-full min-h-0 border border-zinc-800 rounded-none bg-zinc-900/50 overflow-hidden">
+                     <span className="text-[10px] lg:text-xs text-green-500 font-black px-0.5">
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-xl border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-10">
+            <div className="flex items-center justify-center font-black text-xs lg:text-base border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-full min-h-0 overflow-hidden">
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
       </div>
 
-      <div className="w-full lg:w-[380px] border-l border-zinc-800 bg-zinc-950 flex flex-col z-10">
+      <div className="w-full lg:w-[320px] xl:w-[380px] border-l border-zinc-800 bg-zinc-950 flex flex-col z-10">
         <ScrollArea className="flex-1">
           <div className="p-4 lg:p-6 space-y-6">
             <div className="space-y-4">
@@ -345,7 +345,7 @@ const MasterSheetViewer = ({
             </Card>
 
             <div className="space-y-4">
-               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Client Entries for {format(date, 'MMMM do, yyyy')}</h3>
+               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Client Entries for {format(date, 'MMM do, yyyy')}</h3>
               <div className="space-y-2">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                       <div key={log.id} className={cn(
@@ -377,7 +377,7 @@ const MasterSheetViewer = ({
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-950">
           <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-none transition-all active:scale-95">
-            <Download className="mr-2 h-4 w-4" /> Generate & Download Report
+            <Download className="mr-2 h-4 w-4" /> Generate Report
           </Button>
         </div>
       </div>
@@ -634,15 +634,15 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   return (
     <>
-      <Card className="h-full flex flex-col overflow-hidden rounded-none">
-        <CardContent className="p-1 md:p-2 flex-grow flex flex-col min-h-0">
+      <Card className="h-full flex flex-col overflow-hidden rounded-none border-0 bg-transparent">
+        <CardContent className="p-0.5 md:p-1 flex-grow flex flex-col min-h-0">
           {isMobile ? (
-            <Tabs defaultValue="grid" className="w-full flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-2 rounded-none">
-                <TabsTrigger value="grid" className="gap-1.5 rounded-none"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
-                <TabsTrigger value="entry" className="gap-1.5 rounded-none"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
+            <Tabs defaultValue="grid" className="w-full h-full flex flex-col min-h-0">
+              <TabsList className="grid w-full grid-cols-2 rounded-none bg-zinc-900 border-b border-zinc-800 shrink-0">
+                <TabsTrigger value="grid" className="gap-1.5 rounded-none data-[state=active]:bg-zinc-800"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
+                <TabsTrigger value="entry" className="gap-1.5 rounded-none data-[state=active]:bg-zinc-800"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
               </TabsList>
-              <TabsContent value="grid" className="flex-grow min-h-0 mt-2">
+              <TabsContent value="grid" className="flex-grow min-h-0 mt-0 overflow-hidden flex flex-col">
                 <GridView
                   currentData={currentData}
                   updatedCells={updatedCells}
@@ -653,7 +653,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                   showClientSelectionToast={showClientSelectionToast}
                 />
               </TabsContent>
-              <TabsContent value="entry" className="flex-grow min-h-0 mt-2">
+              <TabsContent value="entry" className="flex-grow min-h-0 mt-0 overflow-y-auto">
                  <DataEntryControls
                     clients={props.clients}
                     selectedClientId={selectedClientId}
@@ -676,7 +676,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
               </TabsContent>
             </Tabs>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-1 flex-grow min-h-0 overflow-hidden">
               <GridView
                 currentData={currentData}
                 updatedCells={updatedCells}
