@@ -257,7 +257,7 @@ const MasterSheetViewer = ({
                                 "relative flex items-end justify-center border border-zinc-800 rounded-none transition-all min-h-[40px] lg:min-h-0 pb-1",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
                             )}>
-                                <div className="absolute top-1 left-1.5 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="absolute top-1 left-1.5 text-xs sm:text-sm select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <div className="font-black text-sm sm:text-base lg:text-lg text-white">
                                     {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>

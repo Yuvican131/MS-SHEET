@@ -102,7 +102,7 @@ export function GridView({
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
                                 isUpdated ? "ring-2 ring-primary ring-inset" : ""
                             )}>
-                                <div className="absolute top-0.5 left-1 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="absolute top-0.5 left-1 text-xs sm:text-sm select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <Input
                                     id={`cell-${dataKey}`}
                                     type="text"
