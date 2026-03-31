@@ -244,7 +244,7 @@ const MasterSheetViewer = ({
  return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-background overflow-hidden">
       <div className="flex-1 p-1 lg:p-2 overflow-hidden bg-black flex flex-col">
-        <div className="grid-sheet-layout w-full border border-zinc-800 bg-zinc-950 rounded-none p-1 shadow-2xl flex-grow min-h-0">
+        <div className="grid-sheet-layout w-full border border-zinc-800 bg-zinc-950 rounded-none p-0.5 shadow-2xl flex-grow min-h-0">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -257,8 +257,8 @@ const MasterSheetViewer = ({
                                 "relative flex flex-col justify-end items-center border border-zinc-800 rounded-none transition-all h-full min-h-0 pb-0.5",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]" : "bg-transparent"
                             )}>
-                                <div className="absolute top-0.5 left-1 text-[11px] lg:text-[13px] select-none pointer-events-none z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
-                                <div className="font-black text-xs lg:text-lg text-white">
+                                <div className="absolute top-0.5 left-1 text-[12px] lg:text-[15px] select-none pointer-events-none z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
+                                <div className="font-black text-xs lg:text-xl text-white">
                                     {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
                             </div>
@@ -278,7 +278,7 @@ const MasterSheetViewer = ({
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-xs lg:text-base border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-full min-h-0 overflow-hidden">
+            <div className="flex items-center justify-center font-black text-xs lg:text-lg border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-full min-h-0 overflow-hidden">
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
