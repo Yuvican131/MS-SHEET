@@ -264,9 +264,9 @@ const MasterSheetViewer = ({
   
  return (
     <div className="flex flex-col md:flex-row h-full w-full bg-background overflow-hidden">
-      {/* Left side: Grid Area - Expanded to use more space */}
-      <div className="flex-1 p-4 md:p-6 overflow-auto bg-muted/5 flex items-start justify-center">
-        <div className="grid-sheet-layout w-full max-w-[1200px] shadow-2xl border bg-card rounded-xl p-4">
+      {/* Left side: Grid Area - Maximized to cover available space */}
+      <div className="flex-1 p-2 md:p-4 overflow-auto bg-muted/5 flex items-start justify-center">
+        <div className="grid-sheet-layout w-full h-full shadow-2xl border bg-card rounded-xl p-4 md:p-6">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -276,71 +276,73 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey];
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex items-center border rounded-md transition-all duration-200",
+                                "relative flex items-center border rounded-md transition-all duration-200 min-h-[50px] md:min-h-[70px]",
                                 hasValue ? "bg-primary/10 ring-1 ring-primary/20" : "bg-transparent"
                             )} style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-1 left-1.5 text-[0.7rem] select-none pointer-events-none z-10 font-black opacity-40" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
-                                <div className="h-16 w-full flex items-center justify-center font-black text-base lg:text-lg" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                <div className="absolute top-1 left-1.5 text-[0.7rem] md:text-[0.8rem] select-none pointer-events-none z-10 font-black opacity-50" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
+                                <div className="h-full w-full flex items-center justify-center font-black text-lg md:text-xl lg:text-2xl" style={{ color: 'var(--grid-cell-amount-color)' }}>
                                     {masterSheetData[dataKey] ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
                             </div>
                         );
                     })}
                     <div className="flex items-center justify-center font-black border rounded-md bg-muted/20" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                        <span className="text-[0.75rem] lg:text-sm font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
+                        <span className="text-[0.8rem] md:text-base font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-12 border rounded-md bg-muted/20" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                     <span className="text-[0.75rem] lg:text-sm font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-12 md:h-16 border rounded-md bg-muted/20" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                     <span className="text-[0.8rem] md:text-base font-black" style={{ color: 'var(--grid-cell-total-color)' }}>
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-base border rounded-md bg-primary/20" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+            <div className="flex items-center justify-center font-black text-xl md:text-2xl border rounded-md bg-primary/20" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
       </div>
 
-      {/* Right side: Control Center - Optimized Sidebar */}
-      <div className="w-full md:w-[400px] border-l bg-card flex flex-col shadow-[-10px_0_20px_rgba(0,0,0,0.05)] z-10">
+      {/* Right side: Optimized Sidebar - Always Visible */}
+      <div className="w-full md:w-[360px] lg:w-[420px] border-l bg-card flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-10">
         <ScrollArea className="flex-1">
-          <div className="p-6 space-y-8">
+          <div className="p-4 md:p-6 space-y-6">
             {/* Adjustment Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Settings2 className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Adjustments</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <Settings2 className="h-5 w-5 text-primary" />
+                    <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Adjustments</h3>
+                </div>
+                <Button onClick={() => setMasterSheetData(initialMasterData)} variant="outline" size="sm" className="h-8 text-[10px] uppercase font-black border-primary/20 text-primary hover:bg-primary/10">
+                    <RotateCcw className="h-3 w-3 mr-1" /> Reset
+                </Button>
               </div>
               
               <div className="grid gap-4">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
                     <div className="flex items-center gap-3">
                         <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
-                        <Label htmlFor="comm-less" className="text-xs font-black uppercase tracking-tight">Comm Less</Label>
+                        <Label htmlFor="comm-less" className="text-xs font-black uppercase tracking-tight">Commission Less</Label>
                     </div>
-                    <Button onClick={() => setMasterSheetData(initialMasterData)} variant="outline" size="sm" className="h-8 text-[10px] uppercase font-black border-primary/20 text-primary hover:bg-primary/10">
-                        <RotateCcw className="h-3 w-3 mr-1" /> Reset All
-                    </Button>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Cutting Value</Label>
                     <div className="flex gap-2">
-                        <Input placeholder="0" className="h-11 font-black text-lg focus:ring-primary" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                        <Button onClick={handleApplyCutting} className="h-11 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
+                        <Input placeholder="0" className="h-12 font-black text-xl focus:ring-primary" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                        <Button onClick={handleApplyCutting} className="h-12 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Less Percentage (%)</Label>
                     <div className="flex gap-2">
-                        <Input placeholder="0%" className="h-11 font-black text-lg focus:ring-primary" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                        <Button onClick={handleApplyLess} className="h-11 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
+                        <Input placeholder="0%" className="h-12 font-black text-xl focus:ring-primary" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                        <Button onClick={handleApplyLess} className="h-12 px-6 font-black uppercase text-xs tracking-widest">Apply</Button>
                     </div>
                 </div>
               </div>
@@ -353,22 +355,22 @@ const MasterSheetViewer = ({
                 <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Performance</h3>
               </div>
               
-              <div className="rounded-2xl border bg-primary/5 p-5 space-y-5">
-                <div className="grid grid-cols-2 gap-6">
+              <div className="rounded-2xl border bg-primary/5 p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-1">
                         <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Original</p>
-                        <p className="text-xl font-black tracking-tighter">₹{formatNumber(initialGrandTotal)}</p>
+                        <p className="text-2xl font-black tracking-tighter">₹{formatNumber(initialGrandTotal)}</p>
                     </div>
                     <div className="space-y-1 text-right">
                         <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Adjusted</p>
-                        <p className="text-xl font-black tracking-tighter">₹{formatNumber(masterSheetGrandTotal)}</p>
+                        <p className="text-2xl font-black tracking-tighter">₹{formatNumber(masterSheetGrandTotal)}</p>
                     </div>
                 </div>
                 <Separator className="bg-primary/20" />
-                <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Broker Net Profit</span>
+                <div className="flex justify-between items-center bg-background/50 p-4 rounded-xl border-dashed border-2 border-primary/20">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-primary">Broker Profit</span>
                     <Badge className={cn(
-                        "text-base font-black py-1.5 px-4 rounded-full shadow-lg",
+                        "text-lg font-black py-2 px-6 rounded-full shadow-[0_5px_15px_rgba(var(--primary),0.2)]",
                         netProfit >= 0 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
                     )}>
                         {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
@@ -384,34 +386,34 @@ const MasterSheetViewer = ({
                 <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Active Clients</h3>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                       <div key={log.id} className={cn(
-                          "flex items-center justify-between p-3.5 rounded-xl border transition-all group",
-                          selectedLogIndices.includes(index) ? "bg-card border-primary/30 shadow-sm" : "bg-muted/10 opacity-60 border-transparent"
+                          "flex items-center justify-between p-4 rounded-xl border transition-all group",
+                          selectedLogIndices.includes(index) ? "bg-card border-primary/40 shadow-md ring-1 ring-primary/10" : "bg-muted/10 opacity-50 border-transparent hover:opacity-100"
                       )}>
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-4 min-w-0">
                               <Checkbox
                                   id={`log-master-${index}`}
                                   checked={selectedLogIndices.includes(index)}
                                   onCheckedChange={() => handleLogSelectionChange(index)}
-                                  className="h-5 w-5"
+                                  className="h-6 w-6"
                               />
                               <label htmlFor={`log-master-${index}`} className="text-xs font-black truncate cursor-pointer uppercase tracking-tight">
                                 {log.clientName}
                               </label>
                           </div>
                           <div className="flex items-center gap-3">
-                              <span className="text-xs font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive transition-opacity" onClick={() => onDeleteLog(log.id, log.clientName)}>
-                                  <Trash2 className="h-4 w-4" />
+                              <span className="text-sm font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
+                              <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 text-destructive transition-opacity" onClick={() => onDeleteLog(log.id, log.clientName)}>
+                                  <Trash2 className="h-5 w-5" />
                               </Button>
                           </div>
                       </div>
                   )) : (
-                      <div className="text-center py-16 text-muted-foreground/30 flex flex-col items-center gap-3">
-                          <AlertCircle className="h-10 w-10" />
-                          <p className="text-xs font-black uppercase tracking-widest">No Client Data Available</p>
+                      <div className="text-center py-20 text-muted-foreground/30 flex flex-col items-center gap-4">
+                          <AlertCircle className="h-12 w-12" />
+                          <p className="text-xs font-black uppercase tracking-widest">No Client Data Found</p>
                       </div>
                   )}
               </div>
@@ -419,27 +421,27 @@ const MasterSheetViewer = ({
           </div>
         </ScrollArea>
 
-        {/* Fixed Footer - High Visibility */}
-        <div className="p-6 border-t bg-card/80 backdrop-blur-sm">
-          <Button onClick={handleGenerateSheet} className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(var(--primary),0.3)] hover:scale-[1.02] transition-transform">
-            <Download className="mr-3 h-5 w-5" /> Generate Master Sheet
+        {/* Fixed Footer - High Performance Design */}
+        <div className="p-4 md:p-6 border-t bg-card/90 backdrop-blur-md">
+          <Button onClick={handleGenerateSheet} className="w-full h-16 text-base font-black uppercase tracking-[0.25em] shadow-[0_15px_30px_rgba(var(--primary),0.35)] hover:scale-[1.03] active:scale-95 transition-all rounded-2xl">
+            <Download className="mr-3 h-6 w-6" /> Generate Master Sheet
           </Button>
         </div>
       </div>
 
       {/* Generated Sheet Dialog */}
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Master Sheet Export</DialogTitle>
-            <DialogDescription className="text-xs uppercase font-bold tracking-widest text-primary">{props.draw} | {format(date, 'PPP')}</DialogDescription>
+            <DialogTitle className="text-3xl font-black uppercase tracking-tight">Export Master Sheet</DialogTitle>
+            <DialogDescription className="text-xs uppercase font-bold tracking-widest text-primary font-mono">{props.draw} | {format(date, 'PPPP')}</DialogDescription>
           </DialogHeader>
           <div className="my-6">
-            <Textarea readOnly value={generatedSheetContent} rows={16} className="bg-muted font-mono text-sm leading-relaxed p-4 rounded-xl border-none focus:ring-0" />
+            <Textarea readOnly value={generatedSheetContent} rows={18} className="bg-muted font-mono text-base leading-relaxed p-6 rounded-2xl border-none shadow-inner resize-none focus:ring-0" />
           </div>
           <DialogFooter className="sm:justify-between gap-4">
-            <DialogClose asChild><Button variant="outline" className="h-12 px-8 font-black uppercase text-xs tracking-widest">Close</Button></DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="h-12 px-8 font-black uppercase text-xs tracking-widest"><Copy className="mr-2 h-4 w-4" /> Copy To Clipboard</Button>
+            <DialogClose asChild><Button variant="outline" className="h-14 px-10 font-black uppercase text-xs tracking-widest rounded-xl">Close</Button></DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="h-14 px-10 font-black uppercase text-xs tracking-widest rounded-xl flex-1"><Copy className="mr-3 h-5 w-5" /> Copy Data To Clipboard</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -791,23 +793,23 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="w-full h-[95vh] p-0 border-0 sm:max-w-[95vw] overflow-hidden flex flex-col">
-          <DialogHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-9 w-9">
-                    <ArrowLeft className="h-5 w-5" />
+        <DialogContent className="w-full h-[98vh] p-0 border-0 sm:max-w-[98vw] overflow-hidden flex flex-col rounded-none md:rounded-lg">
+          <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b shrink-0 bg-card">
+            <div className="flex items-center gap-6">
+                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-muted/50 rounded-full">
+                    <ArrowLeft className="h-6 w-6" />
                     <span className="sr-only">Back</span>
                 </Button>
                 <div>
-                    <DialogTitle className="text-xl font-black uppercase tracking-tight">Master Summary</DialogTitle>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{props.draw} | {format(props.date, 'PPP')}</p>
+                    <DialogTitle className="text-2xl font-black uppercase tracking-tight text-foreground">Master Summary</DialogTitle>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">{props.draw} | {format(props.date, 'PPPP')}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                <Badge variant="outline" className="h-8 px-4 font-black border-primary/20 text-primary uppercase tracking-wider">{props.draw}</Badge>
+            <div className="flex items-center gap-4">
+                <Badge className="h-10 px-6 font-black bg-primary/20 text-primary border-primary/30 text-base uppercase tracking-widest">{props.draw}</Badge>
             </div>
           </DialogHeader>
-           <div className="flex-1 overflow-hidden">
+           <div className="flex-1 overflow-hidden bg-background">
                 <MasterSheetViewer 
                     allSavedLogs={props.savedSheetLog}
                     draw={props.draw}
