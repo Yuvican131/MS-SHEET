@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogT
 import { format, isSameDay } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager";
-import { formatNumber } from "@/lib/utils"
+import { cn, formatNumber } from "@/lib/utils"
 import type { Client } from "@/hooks/useClients"
 import type { SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useSheetLog } from "@/hooks/useSheetLog"
