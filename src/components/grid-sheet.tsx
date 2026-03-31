@@ -202,7 +202,7 @@ const MasterSheetViewer = ({
   };
   
   const handleGenerateSheet = () => {
-    const valueToCells: { [value: string]: string[] } = {};
+    const valueToCells: { [value: string]: string [] } = {};
 
     for (let i = 1; i <= 100; i++) {
         const displayKey = i.toString().padStart(2, '0');
@@ -257,7 +257,7 @@ const MasterSheetViewer = ({
                                 "relative flex items-end justify-center border border-zinc-800 rounded-none transition-all min-h-[40px] lg:min-h-0 pb-1",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
                             )}>
-                                <div className="absolute top-1 left-1.5 text-xs sm:text-sm select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="absolute top-1 left-1.5 text-base select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <div className="font-black text-sm sm:text-base lg:text-lg text-white">
                                     {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
@@ -265,7 +265,7 @@ const MasterSheetViewer = ({
                         );
                     })}
                     <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent">
-                        <span className="text-xs sm:text-sm text-green-500">
+                        <span className="text-sm text-green-500">
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
@@ -273,7 +273,7 @@ const MasterSheetViewer = ({
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                 <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-8 lg:h-auto border border-zinc-800 rounded-none bg-transparent">
-                     <span className="text-xs sm:text-sm text-green-500">
+                     <span className="text-sm text-green-500">
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
@@ -289,12 +289,12 @@ const MasterSheetViewer = ({
           <div className="p-4 lg:p-6 space-y-6">
             <div className="space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Manual Controls</h3>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+              <div className="flex items-center justify-between p-3 rounded-none bg-zinc-900 border border-zinc-800">
                   <div className="flex items-center gap-3">
                       <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
                       <Label htmlFor="comm-less" className="text-xs font-bold text-zinc-300">Show Commission Less</Label>
                   </div>
-                  <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg">
+                  <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-none">
                       <RotateCcw className="h-4 w-4" />
                   </Button>
               </div>
@@ -302,23 +302,23 @@ const MasterSheetViewer = ({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Cutting</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                    <Button size="sm" onClick={() => handleApplyAdjustment('cutting')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('cutting')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Less (%)</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                    <Button size="sm" onClick={() => handleApplyAdjustment('less')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('less')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Dabba</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                    <Button size="sm" onClick={() => handleApplyAdjustment('dabba')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-lg">Apply</Button>
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                    <Button size="sm" onClick={() => handleApplyAdjustment('dabba')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
               </div>
             </div>
 
-            <Card className="bg-zinc-900 border-zinc-800 rounded-xl overflow-hidden shadow-xl">
+            <Card className="bg-zinc-900 border-zinc-800 rounded-none overflow-hidden shadow-xl">
                 <div className="p-3 bg-zinc-950 border-b border-zinc-800 text-center">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Profit/Loss Summary</span>
                 </div>
@@ -349,7 +349,7 @@ const MasterSheetViewer = ({
               <div className="space-y-2">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                       <div key={log.id} className={cn(
-                          "flex items-center justify-between p-3 rounded-xl border transition-all",
+                          "flex items-center justify-between p-3 rounded-none border transition-all",
                           selectedLogIndices.includes(index) ? "bg-zinc-900 border-green-500/30" : "bg-zinc-900/40 border-transparent opacity-50"
                       )}>
                           <div className="flex items-center gap-3 min-w-0">
@@ -357,7 +357,7 @@ const MasterSheetViewer = ({
                                   id={`log-master-${index}`}
                                   checked={selectedLogIndices.includes(index)}
                                   onCheckedChange={() => handleLogSelectionChange(index)}
-                                  className="h-5 w-5 rounded-full border-zinc-700 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                  className="h-5 w-5 rounded-none border-zinc-700 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                               />
                               <label htmlFor={`log-master-${index}`} className="text-xs font-bold truncate text-zinc-300">
                                 {index + 1}. {log.clientName}
@@ -366,7 +366,7 @@ const MasterSheetViewer = ({
                           <span className="text-xs font-black text-zinc-100">₹{formatNumber(log.gameTotal)}</span>
                       </div>
                   )) : (
-                      <div className="text-center py-10 text-zinc-600 border border-dashed border-zinc-800 rounded-xl">
+                      <div className="text-center py-10 text-zinc-600 border border-dashed border-zinc-800 rounded-none">
                           <p className="text-[10px] font-bold uppercase tracking-widest">No entries found</p>
                       </div>
                   )}
@@ -376,24 +376,24 @@ const MasterSheetViewer = ({
         </ScrollArea>
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-950">
-          <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+          <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-none transition-all active:scale-95">
             <Download className="mr-2 h-4 w-4" /> Generate & Download Report
           </Button>
         </div>
       </div>
 
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col rounded-none">
           <DialogHeader>
             <DialogTitle>Generated Report</DialogTitle>
             <DialogDescription>{draw} | {format(date, 'PPPP')}</DialogDescription>
           </DialogHeader>
           <div className="flex-1 my-4 min-h-0">
-            <Textarea readOnly value={generatedSheetContent} className="h-full bg-zinc-900 font-mono text-sm leading-relaxed p-4 rounded-xl border-zinc-800 resize-none" />
+            <Textarea readOnly value={generatedSheetContent} className="h-full bg-zinc-900 font-mono text-sm leading-relaxed p-4 rounded-none border-zinc-800 resize-none" />
           </div>
           <DialogFooter className="sm:justify-between gap-4">
-            <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="flex-1">Copy to Clipboard</Button>
+            <DialogClose asChild><Button variant="outline" className="rounded-none">Close</Button></DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="flex-1 rounded-none">Copy to Clipboard</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -634,13 +634,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   return (
     <>
-      <Card className="h-full flex flex-col overflow-hidden">
+      <Card className="h-full flex flex-col overflow-hidden rounded-none">
         <CardContent className="p-1 md:p-2 flex-grow flex flex-col min-h-0">
           {isMobile ? (
             <Tabs defaultValue="grid" className="w-full flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="grid" className="gap-1.5"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
-                <TabsTrigger value="entry" className="gap-1.5"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 rounded-none">
+                <TabsTrigger value="grid" className="gap-1.5 rounded-none"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
+                <TabsTrigger value="entry" className="gap-1.5 rounded-none"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
               </TabsList>
               <TabsContent value="grid" className="flex-grow min-h-0 mt-2">
                 <GridView
@@ -715,7 +715,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         <DialogContent className="w-full h-full p-0 border-0 sm:max-w-none overflow-hidden flex flex-col rounded-none">
           <DialogHeader className="flex flex-row items-center justify-between px-6 py-3 border-b border-zinc-800 shrink-0 bg-zinc-950">
             <div className="flex items-center gap-6">
-                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-zinc-800 rounded-full text-zinc-100">
+                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-zinc-800 rounded-none text-zinc-100">
                     <ArrowLeft className="h-6 w-6" />
                     <span className="sr-only">Back</span>
                 </Button>
@@ -723,7 +723,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     <DialogTitle className="text-xl font-bold text-zinc-100">Master Sheet : {props.draw}</DialogTitle>
                 </div>
             </div>
-             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-8 w-8 hover:bg-zinc-800 rounded-lg text-zinc-400">
+             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-8 w-8 hover:bg-zinc-800 rounded-none text-zinc-400">
                 <X className="h-5 w-5" />
             </Button>
           </DialogHeader>
@@ -740,7 +740,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Dialog>
       
       <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
-        <DialogContent>
+        <DialogContent className="rounded-none">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
@@ -748,14 +748,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogToDelete(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteLogEntry}>Delete</Button>
+            <Button variant="outline" onClick={() => setLogToDelete(null)} className="rounded-none">Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteLogEntry} className="rounded-none">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-none">
           <DialogHeader>
             <DialogTitle>Last Processed Entry</DialogTitle>
           </DialogHeader>
@@ -764,12 +764,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
               readOnly
               value={props.lastEntry || "No entries yet."}
               rows={Math.min(15, (props.lastEntry || "").split('\n').length)}
-              className="bg-muted font-mono"
+              className="bg-muted font-mono rounded-none"
             />
           </div>
           <DialogFooter className="sm:justify-between">
-            <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
-             <Button onClick={() => navigator.clipboard.writeText(props.lastEntry)}>
+            <DialogClose asChild><Button variant="secondary" className="rounded-none">Close</Button></DialogClose>
+             <Button onClick={() => navigator.clipboard.writeText(props.lastEntry)} className="rounded-none">
                 <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>
           </DialogFooter>
@@ -777,7 +777,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Dialog>
 
       <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl rounded-none">
             <DialogHeader>
                 <DialogTitle className="uppercase font-black">Client History</DialogTitle>
                 <DialogDescription>
@@ -789,7 +789,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     <div className="space-y-2 pr-4">
                         {clientEntries.length > 0 ? (
                             clientEntries.map((entry, index) => (
-                                <Card key={entry.id} className="p-3 border-l-4 border-l-primary">
+                                <Card key={entry.id} className="p-3 border-l-4 border-l-primary rounded-none">
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="font-bold">
@@ -800,7 +800,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                                                 {entry.rawInput || "Manual Grid Update"}
                                             </p>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => props.onDeleteLogEntry(entry.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-none" onClick={() => props.onDeleteLogEntry(entry.id)}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -813,7 +813,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 </ScrollArea>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsViewEntryDialogOpen(false)}>Close</Button>
+                <Button variant="outline" onClick={() => setIsViewEntryDialogOpen(false)} className="rounded-none">Close</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

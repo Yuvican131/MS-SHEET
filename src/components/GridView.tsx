@@ -100,9 +100,10 @@ export function GridView({
                             <div key={dataKey} className={cn(
                                 "relative flex flex-col justify-end border rounded-none transition-all grid-cell",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
-                                isUpdated ? "ring-2 ring-primary ring-inset" : ""
+                                isUpdated ? "ring-2 ring-primary ring-inset" : "",
+                                "focus-within:ring-2 focus-within:ring-white focus-within:ring-inset focus-within:z-20"
                             )}>
-                                <div className="absolute top-0.5 left-1 text-xs sm:text-sm select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
+                                <div className="absolute top-0.5 left-1 text-base select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
                                 <Input
                                     id={`cell-${dataKey}`}
                                     type="text"
@@ -112,17 +113,17 @@ export function GridView({
                                     onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className="p-0 pb-1 h-8 w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input text-white font-black"
+                                    className="p-0 pb-1 h-8 w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 grid-cell-input text-white font-black"
                                     aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
                                 {validation && !validation.isValid && !validation.isLoading && (
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <button className="absolute bottom-0 right-0 p-0.5 text-destructive-foreground bg-destructive rounded-full">
+                                            <button className="absolute bottom-0 right-0 p-0.5 text-destructive-foreground bg-destructive rounded-none">
                                                 <AlertCircle className="h-3 w-3" />
                                             </button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-64 p-2 text-sm">
+                                        <PopoverContent className="w-64 p-2 text-sm rounded-none">
                                             <p>{validation.recommendation}</p>
                                         </PopoverContent>
                                     </Popover>
@@ -136,7 +137,7 @@ export function GridView({
                         )
                     })}
                     <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell">
-                        <span className="text-xs sm:text-sm text-green-500">
+                        <span className="text-sm text-green-500">
                             {rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''}
                         </span>
                     </div>
@@ -144,7 +145,7 @@ export function GridView({
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                 <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-none bg-transparent grid-cell">
-                    <span className="text-xs sm:text-sm text-green-500">
+                    <span className="text-sm text-green-500">
                         {columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''}
                     </span>
                 </div>
