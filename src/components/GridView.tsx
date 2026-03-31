@@ -99,7 +99,7 @@ export function GridView({
 
                         return (
                             <div key={dataKey} className={cn(
-                                "relative flex border rounded-lg transition-all grid-cell",
+                                "relative flex flex-col justify-end border rounded-lg transition-all grid-cell",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
                                 isUpdated ? "ring-2 ring-primary ring-inset" : ""
                             )}>
@@ -113,7 +113,7 @@ export function GridView({
                                     onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className="p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input text-white font-black"
+                                    className="p-0 pb-1 h-8 w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input text-white font-black"
                                     aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
                                 {validation && !validation.isValid && !validation.isLoading && (

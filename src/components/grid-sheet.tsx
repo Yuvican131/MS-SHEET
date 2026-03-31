@@ -254,7 +254,7 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey] && parseFloat(masterSheetData[dataKey]) !== 0;
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex items-center justify-center border border-zinc-800 rounded-lg transition-all min-h-[40px] lg:min-h-0",
+                                "relative flex items-end justify-center border border-zinc-800 rounded-lg transition-all min-h-[40px] lg:min-h-0 pb-1",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
                             )}>
                                 <div className="absolute top-1 left-1.5 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
