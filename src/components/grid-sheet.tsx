@@ -101,7 +101,7 @@ const MasterSheetViewer = ({
   };
   
   React.useEffect(() => {
-    const logsToProcess = (currentLogs || []);
+    const logsToProcess = currentLogs || [];
     const newMasterData: CellData = {};
     
     selectedLogIndices.forEach(index => {
@@ -244,7 +244,7 @@ const MasterSheetViewer = ({
  return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-background overflow-hidden">
       <div className="flex-1 p-2 lg:p-4 overflow-auto bg-black flex items-stretch">
-        <div className="grid-sheet-layout w-full h-full border border-zinc-800 bg-zinc-950/50 rounded-lg p-2 lg:p-4 shadow-2xl">
+        <div className="grid-sheet-layout w-full h-full border border-zinc-800 bg-zinc-950/50 rounded-none p-2 lg:p-4 shadow-2xl">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`master-row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -254,7 +254,7 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey] && parseFloat(masterSheetData[dataKey]) !== 0;
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex items-end justify-center border border-zinc-800 rounded-lg transition-all min-h-[40px] lg:min-h-0 pb-1",
+                                "relative flex items-end justify-center border border-zinc-800 rounded-none transition-all min-h-[40px] lg:min-h-0 pb-1",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800"
                             )}>
                                 <div className="absolute top-1 left-1.5 text-[10px] sm:text-xs select-none pointer-events-none z-10 font-bold text-cyan-400 opacity-80">{displayKey}</div>
@@ -264,7 +264,7 @@ const MasterSheetViewer = ({
                             </div>
                         );
                     })}
-                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-lg bg-transparent">
+                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent">
                         <span className="text-xs sm:text-sm text-green-500">
                             {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
@@ -272,13 +272,13 @@ const MasterSheetViewer = ({
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-8 lg:h-auto border border-zinc-800 rounded-lg bg-transparent">
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-8 lg:h-auto border border-zinc-800 rounded-none bg-transparent">
                      <span className="text-xs sm:text-sm text-green-500">
                         {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-lg sm:text-xl border-2 border-green-500/50 rounded-lg bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+            <div className="flex items-center justify-center font-black text-lg sm:text-xl border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>

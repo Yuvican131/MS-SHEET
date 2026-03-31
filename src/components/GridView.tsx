@@ -60,7 +60,6 @@ export function GridView({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentKey: string) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            // Calculate next cell
             let currentNum = currentKey === '00' ? 100 : parseInt(currentKey, 10);
             let nextNum = (currentNum % 100) + 1;
             let nextKey = nextNum === 100 ? '00' : nextNum.toString().padStart(2, '0');
@@ -68,7 +67,7 @@ export function GridView({
             const nextInput = document.getElementById(`cell-${nextKey}`);
             if (nextInput) {
                 (nextInput as HTMLInputElement).focus();
-                (nextInput as HTMLInputElement).select(); // Select content for quick overwriting
+                (nextInput as HTMLInputElement).select();
             }
         }
     };
@@ -86,7 +85,7 @@ export function GridView({
     };
 
     return (
-        <div className="grid-sheet-layout h-full w-full bg-zinc-950 p-2 rounded-lg border border-zinc-800 shadow-2xl">
+        <div className="grid-sheet-layout h-full w-full bg-zinc-950 p-2 rounded-none border border-zinc-800 shadow-2xl">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -99,7 +98,7 @@ export function GridView({
 
                         return (
                             <div key={dataKey} className={cn(
-                                "relative flex flex-col justify-end border rounded-lg transition-all grid-cell",
+                                "relative flex flex-col justify-end border rounded-none transition-all grid-cell",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] border-zinc-700" : "bg-transparent border-zinc-800",
                                 isUpdated ? "ring-2 ring-primary ring-inset" : ""
                             )}>
@@ -136,7 +135,7 @@ export function GridView({
                             </div>
                         )
                     })}
-                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-lg bg-transparent grid-cell">
+                    <div className="flex items-center justify-center font-bold border border-zinc-800 rounded-none bg-transparent grid-cell">
                         <span className="text-xs sm:text-sm text-green-500">
                             {rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''}
                         </span>
@@ -144,13 +143,13 @@ export function GridView({
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-lg bg-transparent grid-cell">
+                <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-bold h-full border border-zinc-800 rounded-none bg-transparent grid-cell">
                     <span className="text-xs sm:text-sm text-green-500">
                         {columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''}
                     </span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-lg border-2 border-green-500/50 rounded-lg bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+            <div className="flex items-center justify-center font-black text-lg border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
                 {formatNumber(grandTotal)}
             </div>
         </div>
