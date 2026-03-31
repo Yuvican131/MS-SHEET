@@ -4,15 +4,15 @@ import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, 
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit, TrendingUp, TrendingDown } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit, TrendingUp, TrendingDown, Settings2, Receipt, ListChecks } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { format, isSameDay } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager";
@@ -27,6 +27,7 @@ import { GridView } from "./GridView"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Separator } from "./ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "./ui/badge"
 
 
 type CellData = { [key: string]: string }
@@ -56,9 +57,6 @@ const initialSheets: Sheet[] = [
 
 const GRID_ROWS = 10;
 const GRID_COLS = 10;
-const DUMMY_ACCOUNTS = "Revenue, Expenses, Assets, Liabilities, Equity, COGS"
-const DUMMY_RULES = "Cell content must be a number or a standard account name. If it's a number, it can be positive or negative."
-const MAX_COMBINATIONS = 100;
 
 export type GridSheetHandle = {
   handleClientUpdate: (client: Client) => void;
@@ -192,14 +190,14 @@ const MasterSheetViewer = ({
     });
     setMasterSheetData(newMasterData);
 
-    toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells in the master sheet.` });
+    toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells.` });
     setCuttingValue("");
   };
 
   const handleApplyLess = () => {
     const lessPercent = parseFloat(lessValue);
     if (isNaN(lessPercent) || lessPercent < 0 || lessPercent > 100) {
-      toast({ title: "Invalid Input", description: "Please enter a valid percentage (0-100) for Less.", variant: "destructive" });
+      toast({ title: "Invalid Input", description: "Please enter a valid percentage (0-100).", variant: "destructive" });
       return;
     }
 
@@ -213,7 +211,7 @@ const MasterSheetViewer = ({
     });
     setMasterSheetData(newMasterData);
 
-    toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
+    toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells.` });
     setLessValue("");
   };
 
@@ -250,19 +248,15 @@ const MasterSheetViewer = ({
     const grandTotal = calculateGrandTotal(masterSheetData);
     const totalString = `Total = ${formatNumber(grandTotal)}`;
     
-    const fullContent = `${draw}\n${sheetBody}\n\n${totalString}`;
+    const fullContent = `${draw} | ${format(date, 'PPP')}\n\n${sheetBody}\n\n${totalString}`;
 
     setGeneratedSheetContent(fullContent);
     setIsGeneratedSheetDialogOpen(true);
-    toast({ title: "Master Sheet Generated", description: "The multi-text area has been populated with the grid data." });
   };
   
   const handleCopyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(() => {
         toast({ title: "Copied to clipboard!" });
-    }, (err) => {
-        toast({ title: "Failed to copy", description: "Could not copy text to clipboard.", variant: "destructive" });
-        console.error('Failed to copy: ', err);
     });
   };
 
@@ -270,174 +264,181 @@ const MasterSheetViewer = ({
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
   
  return (
-    <>
-    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 pb-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full flex-grow items-stretch">
-        <div className="flex flex-col min-w-0">
-            <div className="grid-sheet-layout h-full w-full">
-                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                    <React.Fragment key={`master-row-${rowIndex}`}>
-                        {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-                            const displayKey = cellNumber.toString().padStart(2, '0');
-                            const dataKey = cellNumber === 100 ? '00' : displayKey;
-                            return (
-                                <div key={`master-cell-${dataKey}`} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                    <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
-                                    <Input
-                                        type="text"
-                                        readOnly
-                                        className="p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300"
-                                        value={masterSheetData[dataKey] ? formatNumber(masterSheetData[dataKey]) : ''}
-                                        aria-label={`Cell ${displayKey}`}
-                                        style={{ color: 'var(--grid-cell-amount-color)' }}
-                                    />
+    <div className="flex flex-col md:flex-row h-full w-full bg-background overflow-hidden">
+      {/* Left side: Grid Area */}
+      <div className="flex-1 p-2 md:p-4 overflow-auto bg-muted/10">
+        <div className="grid-sheet-layout mx-auto max-w-4xl shadow-xl border bg-card rounded-md">
+            {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                <React.Fragment key={`master-row-${rowIndex}`}>
+                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                        const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+                        const displayKey = cellNumber.toString().padStart(2, '0');
+                        const dataKey = cellNumber === 100 ? '00' : displayKey;
+                        const hasValue = !!masterSheetData[dataKey];
+                        return (
+                            <div key={`master-cell-${dataKey}`} className={cn(
+                                "relative flex items-center border rounded-sm transition-colors duration-200",
+                                hasValue ? "bg-primary/5" : "bg-transparent"
+                            )} style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                                <div className="absolute top-0.5 left-1 text-[0.6rem] select-none pointer-events-none z-10 font-bold opacity-60" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
+                                <div className="h-12 w-full flex items-center justify-center font-bold text-sm" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                    {masterSheetData[dataKey] ? formatNumber(masterSheetData[dataKey]) : ''}
                                 </div>
-                            );
-                        })}
-                        <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                            <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
-                                {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
-                            </span>
-                        </div>
-                    </React.Fragment>
-                ))}
-                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                         <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
-                            {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
+                            </div>
+                        );
+                    })}
+                    <div className="flex items-center justify-center font-bold border rounded-sm bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                        <span className="text-[0.7rem] sm:text-xs" style={{ color: 'var(--grid-cell-total-color)' }}>
+                            {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
                         </span>
                     </div>
-                ))}
-                <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
-                    {formatNumber(masterSheetGrandTotal)}
+                </React.Fragment>
+            ))}
+            {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-bold h-10 border rounded-sm bg-muted/30" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                     <span className="text-[0.7rem] sm:text-xs" style={{ color: 'var(--grid-cell-total-color)' }}>
+                        {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
+                    </span>
                 </div>
+            ))}
+            <div className="flex items-center justify-center font-black text-sm border rounded-sm bg-primary/10" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+                {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
-        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
-          <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
-              <h3 className="font-semibold text-sm text-card-foreground">Manual Controls</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                    <Switch id="commission-less-switch" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
-                    <Label htmlFor="commission-less-switch">Show Commission Less</Label>
+      </div>
+
+      {/* Right side: Control Center */}
+      <div className="w-full md:w-[360px] border-l bg-card flex flex-col shadow-2xl z-10">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-6">
+            {/* Adjustment Section */}
+            <Card className="border-none shadow-none bg-transparent">
+              <CardHeader className="p-0 pb-3 flex flex-row items-center gap-2">
+                <Settings2 className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider">Adjustments</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 space-y-4">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border">
+                    <div className="flex items-center gap-2">
+                        <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
+                        <Label htmlFor="comm-less" className="text-xs font-semibold">Comm Less</Label>
+                    </div>
+                    <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold">
+                        <RotateCcw className="h-3 w-3 mr-1" /> Reset
+                    </Button>
                 </div>
-                <Button onClick={() => setMasterSheetData(initialMasterData)} size="sm" variant="outline"><RotateCcw className="h-3 w-3 mr-2" /> Reset</Button>
-              </div>
-              <Separator />
-              <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                      <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
-                      <Input id="master-cutting" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                      <Button onClick={handleApplyCutting} size="sm" className="h-8">Apply</Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
-                      <Input id="master-less" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                      <Button onClick={handleApplyLess} size="sm" className="h-8">Apply</Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
-                      <Input id="master-dabba" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                      <Button size="sm" className="h-8">Apply</Button>
-                  </div>
-              </div>
-              <Separator />
-                <div className="p-2 bg-muted/50 rounded-lg">
-                    <h4 className="text-xs font-semibold text-center mb-2">Profit/Loss Summary</h4>
-                    <div className="space-y-1 text-xs">
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Original Total</span>
-                            <span className="font-mono font-semibold">₹{formatNumber(initialGrandTotal)}</span>
+                
+                <div className="grid gap-3">
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Cutting Value</Label>
+                        <div className="flex gap-2">
+                            <Input placeholder="0" className="h-9 font-bold" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                            <Button onClick={handleApplyCutting} size="sm" className="h-9 px-4">Apply</Button>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Adjusted Total</span>
-                            <span className="font-mono font-semibold">₹{formatNumber(masterSheetGrandTotal)}</span>
-                        </div>
-                        <Separator className="my-1" />
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="font-bold">Net Profit/Loss</span>
-                            <span className={`font-mono font-bold ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {netProfit >= 0 ? `+₹${formatNumber(netProfit)}` : `-₹${formatNumber(Math.abs(netProfit))}`}
-                            </span>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Less Percentage (%)</Label>
+                        <div className="flex gap-2">
+                            <Input placeholder="0%" className="h-9 font-bold" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                            <Button onClick={handleApplyLess} size="sm" className="h-9 px-4">Apply</Button>
                         </div>
                     </div>
                 </div>
-          </div>
-          
-
-          <Card className="flex flex-col flex-grow bg-card min-h-0">
-              <CardHeader className="p-3">
-                  <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 flex-grow min-h-0">
-                  <ScrollArea className="h-full">
-                      <div className="space-y-2 pr-2">
-                          {currentLogs.length > 0 ? currentLogs.map((log, index) => (
-                              <div key={log.id} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
-                                  <div className="flex items-center gap-2">
-                                      <Checkbox
-                                          id={`log-${draw}-${index}`}
-                                          checked={selectedLogIndices.includes(index)}
-                                          onCheckedChange={() => handleLogSelectionChange(index)}
-                                          className="border-primary"
-                                      />
-                                      <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                      <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
-                                       <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                                          onClick={() => onDeleteLog(log.id, log.clientName)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                          <span className="sr-only">Delete Log</span>
-                                        </Button>
-                                  </div>
-                              </div>
-                          )) : (
-                              <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw on this date.</div>
-                          )}
-                      </div>
-                  </ScrollArea>
               </CardContent>
-          </Card>
-          
-          <Button onClick={handleGenerateSheet} variant="outline">
-            <Download className="mr-2 h-4 w-4"/> Generate & Download Report
+            </Card>
+
+            {/* Performance Summary Section */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader className="p-3 pb-1">
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Receipt className="h-3 w-3" /> Profit & Loss View
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-2">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Original</p>
+                        <p className="text-lg font-black tracking-tight">₹{formatNumber(initialGrandTotal)}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Adjusted</p>
+                        <p className="text-lg font-black tracking-tight">₹{formatNumber(masterSheetGrandTotal)}</p>
+                    </div>
+                </div>
+                <Separator className="my-3 bg-primary/20" />
+                <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-primary">Broker Profit</span>
+                    <Badge className={cn(
+                        "text-sm font-black py-1 px-3",
+                        netProfit >= 0 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
+                    )}>
+                        {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
+                    </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Client Logs Section */}
+            <Card className="border-none shadow-none bg-transparent">
+               <CardHeader className="p-0 pb-3 flex flex-row items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider">Included Clients</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <div className="space-y-1.5">
+                      {currentLogs.length > 0 ? currentLogs.map((log, index) => (
+                          <div key={log.id} className="flex items-center justify-between p-2.5 rounded-md border bg-card hover:bg-muted/30 transition-colors group">
+                              <div className="flex items-center gap-3 min-w-0">
+                                  <Checkbox
+                                      id={`log-master-${index}`}
+                                      checked={selectedLogIndices.includes(index)}
+                                      onCheckedChange={() => handleLogSelectionChange(index)}
+                                  />
+                                  <label htmlFor={`log-master-${index}`} className="text-xs font-bold truncate cursor-pointer uppercase">
+                                    {log.clientName}
+                                  </label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black tabular-nums">₹{formatNumber(log.gameTotal)}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => onDeleteLog(log.id, log.clientName)}>
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                              </div>
+                          </div>
+                      )) : (
+                          <div className="text-center py-10 text-muted-foreground/40 italic flex flex-col items-center gap-2">
+                              <AlertCircle className="h-8 w-8" />
+                              <p className="text-xs font-bold uppercase tracking-tighter">No logs found</p>
+                          </div>
+                      )}
+                  </div>
+              </CardContent>
+            </Card>
+          </div>
+        </ScrollArea>
+
+        {/* Fixed Footer */}
+        <div className="p-4 border-t bg-muted/10">
+          <Button onClick={handleGenerateSheet} className="w-full h-12 text-sm font-black uppercase tracking-widest shadow-lg">
+            <Download className="mr-2 h-4 w-4" /> Generate Sheet
           </Button>
         </div>
       </div>
-    </div>
-     <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
+
+      {/* Generated Sheet Dialog */}
+      <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Generated Master Sheet Content</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Master Sheet Output</DialogTitle></DialogHeader>
           <div className="my-4">
-            <Textarea
-              readOnly
-              value={generatedSheetContent}
-              rows={Math.min(15, generatedSheetContent.split('\n').length)}
-              className="bg-muted"
-            />
+            <Textarea readOnly value={generatedSheetContent} rows={12} className="bg-muted font-mono text-sm leading-relaxed" />
           </div>
           <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">
-                Close
-              </Button>
-            </DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
-              <Copy className="mr-2 h-4 w-4" />
-              Copy to Clipboard
-            </Button>
+            <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}><Copy className="mr-2 h-4 w-4" /> Copy Content</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 
@@ -532,7 +533,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         setUpdatedCells(updatedKeys);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+        toast({ title: "Sheet Updated", description: `${updatedKeys.length} cell(s) updated.` });
     }
   };
 
@@ -561,7 +562,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
           setUpdatedCells(prev => [...prev, key]);
           setTimeout(() => setUpdatedCells(prev => prev.filter(c => c !== key)), 2000);
-          toast({ title: "Sheet Updated by Client", description: `Cell ${client.name} value multiplied by commission ${client.comm}.` });
+          toast({ title: "Sheet Updated", description: `Cell ${client.name} adjusted.` });
         }
       }
     },
@@ -593,7 +594,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleCellBlur = async (key: string) => {
-    // Automatic AI validation disabled to save API quota for scanning.
     return;
   }
 
@@ -613,7 +613,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (entryTotal > remainingBalance) {
       toast({
         title: "Balance Limit Exceeded",
-        description: `This entry of ${formatNumber(entryTotal)} exceeds the remaining balance of ${formatNumber(remainingBalance)}.`,
+        description: `This entry exceeds the remaining balance.`,
         variant: "destructive",
       });
       return false;
@@ -633,16 +633,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setUpdatedCells([]);
     props.setLastEntry('');
     setCurrentRawInput("");
-    toast({ title: "Sheet Cleared", description: "All cell values for the current view have been reset." });
+    toast({ title: "Sheet Cleared" });
   };
   
   const handleSaveSheet = () => {
     if (!selectedClientId) {
-      toast({
-        title: "No Client Selected",
-        description: "Please select a client to save their sheet.",
-        variant: "destructive",
-      });
+      showClientSelectionToast();
       return;
     }
     
@@ -650,14 +646,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     
     if (Object.keys(newEntries).length === 0) {
       toast({
-        title: "No Data to Save",
-        description: "The sheet is empty. Please enter some data before saving.",
+        title: "No Data",
+        description: "Please enter data before saving.",
         variant: "destructive",
       });
       return;
     }
     
-    const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
+    const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown";
     
     props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date, currentRawInput);
     
@@ -670,7 +666,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const handleDeleteLogEntry = () => {
     if (logToDelete) {
         deleteSheetLogEntry(logToDelete.id);
-        toast({ title: "Log Deleted", description: `The entry for ${logToDelete.name} has been deleted.` });
+        toast({ title: "Entry Deleted" });
     }
     setLogToDelete(null);
   };
@@ -694,7 +690,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (a.createdAt && b.createdAt) {
           return b.createdAt.localeCompare(a.createdAt);
         }
-        // Fallback for entries without a createdAt timestamp
         return b.id.localeCompare(a.id);
       });
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
@@ -704,7 +699,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const dateStr = props.date.toISOString().split('T')[0];
     const clientLogs = (props.savedSheetLog[props.draw] || []).filter(log => log.clientId === client.id && log.date === dateStr);
     const totalAmount = clientLogs.reduce((sum, log) => sum + log.gameTotal, 0);
-    return `${client.name} - ${formatNumber(totalAmount)}`;
+    return `${client.name} - ₹${formatNumber(totalAmount)}`;
   };
   
   return (
@@ -791,30 +786,40 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="w-full h-full p-0 border-0 sm:max-w-none">
-          <DialogHeader className="flex-row items-center p-4 border-b">
-            <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="sr-only">Back</span>
-            </Button>
-            <DialogTitle>Master Sheet : {props.draw}</DialogTitle>
+        <DialogContent className="w-full h-[95vh] p-0 border-0 sm:max-w-[95vw] overflow-hidden flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-9 w-9">
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="sr-only">Back</span>
+                </Button>
+                <div>
+                    <DialogTitle className="text-xl font-black uppercase tracking-tight">Master Summary</DialogTitle>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{props.draw} | {format(props.date, 'PPP')}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <Badge variant="outline" className="h-8 px-4 font-black border-primary/20 text-primary uppercase tracking-wider">{props.draw}</Badge>
+            </div>
           </DialogHeader>
-           <MasterSheetViewer 
-             allSavedLogs={props.savedSheetLog}
-             draw={props.draw}
-             date={props.date}
-             clients={props.clients}
-             onDeleteLog={(id, name) => setLogToDelete({ id, name })}
-           />
+           <div className="flex-1 overflow-hidden">
+                <MasterSheetViewer 
+                    allSavedLogs={props.savedSheetLog}
+                    draw={props.draw}
+                    date={props.date}
+                    clients={props.clients}
+                    onDeleteLog={(id, name) => setLogToDelete({ id, name })}
+                />
+           </div>
         </DialogContent>
       </Dialog>
       
       <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Log Entry?</DialogTitle>
+            <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the sheet for <strong>{logToDelete?.name}</strong>? This action cannot be undone.
+              Are you sure you want to delete the entry for <strong>{logToDelete?.name}</strong>?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -828,25 +833,20 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Last Entry</DialogTitle>
+            <DialogTitle>Last Processed Entry</DialogTitle>
           </DialogHeader>
           <div className="my-4">
             <Textarea
               readOnly
               value={props.lastEntry || "No entries yet."}
               rows={Math.min(15, (props.lastEntry || "").split('\n').length)}
-              className="bg-muted"
+              className="bg-muted font-mono"
             />
           </div>
           <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">
-                Close
-              </Button>
-            </DialogClose>
+            <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
              <Button onClick={() => navigator.clipboard.writeText(props.lastEntry)}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy to Clipboard
+                <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -855,11 +855,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
         <DialogContent className="max-w-xl">
             <DialogHeader>
-                <DialogTitle>
-                    Entries for {props.clients.find(c => c.id === selectedClientId)?.name}
-                </DialogTitle>
+                <DialogTitle className="uppercase font-black">Client History</DialogTitle>
                 <DialogDescription>
-                    Draw: {props.draw} | Date: {format(props.date, 'PPP')}
+                    {props.clients.find(c => c.id === selectedClientId)?.name} | {props.draw}
                 </DialogDescription>
             </DialogHeader>
             <div className="my-4">
@@ -867,25 +865,25 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     <div className="space-y-2 pr-4">
                         {clientEntries.length > 0 ? (
                             clientEntries.map((entry, index) => (
-                                <Card key={entry.id} className="p-3">
+                                <Card key={entry.id} className="p-3 border-l-4 border-l-primary">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="font-semibold">
+                                            <p className="font-bold">
                                                 Entry {clientEntries.length - index}: 
-                                                <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
+                                                <span className="font-black text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
                                             </p>
-                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                                                {entry.rawInput || Object.entries(entry.data).map(([k, v]) => `${k}=${v}`).join(', ')}
+                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                                                {entry.rawInput || "Manual Grid Update"}
                                             </p>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => props.onDeleteLogEntry(entry.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => props.onDeleteLogEntry(entry.id)}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </Card>
                             ))
                         ) : (
-                            <p className="text-center text-muted-foreground py-8">No entries saved for this client today.</p>
+                            <p className="text-center text-muted-foreground py-8 italic font-bold">No entries found for today.</p>
                         )}
                     </div>
                 </ScrollArea>
