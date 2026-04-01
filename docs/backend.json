@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Client": {
@@ -11,13 +12,9 @@
         "inOut": { "type": "string" },
         "patti": { "type": "string" },
         "activeBalance": { "type": "number", "default": 0 },
-        "paymentType": {
-          "type": "string",
-          "enum": ["credit", "pre-paid"],
-          "default": "credit"
-        }
+        "securityMoney": { "type": "number", "default": 0 }
       },
-      "required": ["name", "pair", "comm", "inOut", "patti", "paymentType"]
+      "required": ["name", "pair", "comm", "inOut", "patti", "securityMoney"]
     },
     "SheetLog": {
       "title": "SheetLog",

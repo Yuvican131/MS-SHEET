@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
@@ -46,13 +47,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Client with phone number ${clientPhoneNumber} not found.` }, { status: 404 });
     }
     
-    // 2. Check client's payment type.
-    if (targetClient.paymentType === 'pre-paid') {
-      return NextResponse.json({ 
-        error: `Client ${targetClient.name} is a pre-paid client. Order must be entered manually after payment verification.` 
-      }, { status: 403 }); // 403 Forbidden is a good status code here.
-    }
-
+    // Note: Security Money check could be added here if logic requires it, 
+    // but the previous Pre-paid restriction is removed as requested.
 
     // 3. Use AI to parse the message
     const processedData = await processOrder({ message, clientPhoneNumber });

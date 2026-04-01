@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
 import { formatNumber } from "@/lib/utils"
-import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText, Calendar as CalendarIcon, ChevronLeft, ChevronRight as ChevronRightIcon, Plus, Save } from 'lucide-react';
+import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText, Calendar as CalendarIcon, ChevronLeft, ChevronRight as ChevronRightIcon, Plus, Save, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -289,9 +289,11 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                           <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter">
                             {selectedAccount.clientName}
                           </CardTitle>
-                          {selectedClient?.paymentType === 'pre-paid' && (
-                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none uppercase text-[9px] font-black px-2 h-5">Pre-paid</Badge>
-                          )}
+                          {selectedClient?.securityMoney && selectedClient.securityMoney > 0 ? (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none uppercase text-[9px] font-black px-2 h-5 flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3" /> Security: ₹{formatNumber(selectedClient.securityMoney)}
+                            </Badge>
+                          ) : null}
                         </div>
                         <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
                           <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">

@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { collection, doc, writeBatch, getDocs, query, where } from 'firebase/firestore';
@@ -18,7 +19,7 @@ export type Client = {
   inOut: string;
   patti: string;
   activeBalance: number;
-  paymentType: 'credit' | 'pre-paid';
+  securityMoney: number;
 };
 
 export const useClients = (userId?: string) => {
