@@ -101,12 +101,10 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   }, [editingClient, isFormDialogOpen]);
   
   useEffect(() => {
-    // When the listening dialog closes, update the main input with the final transcript.
     if (!isListeningDialogOpen && interimTranscript !== 'Listening...' && interimTranscript) {
         setClientNameInput(prev => interimTranscript || prev);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isListeningDialogOpen]);
+  }, [isListeningDialogOpen, interimTranscript]);
 
 
   const handleListen = () => {
@@ -156,7 +154,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   const confirmAction = (title: string, description: string, action: () => void) => {
     setDialogTitle(title);
     setDialogDescription(description);
-    setDialogAction(() => action); // Use a function to ensure the action is correctly scoped
+    setDialogAction(() => action);
     setIsConfirmDialogOpen(true);
   };
   
@@ -170,7 +168,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
 
   const handleClearClientData = (id: string, name: string) => {
     confirmAction(
-      `Clear Sheet Data for ${name}?_`,
+      `Clear Sheet Data for ${name}?`,
       "This action cannot be undone. This will permanently delete all sheet log history for this client.",
       () => onClearClientData(id, name)
     );
@@ -316,15 +314,14 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                     <th scope="col" className="px-6 py-3">Name</th>
                     <th scope="col" className="px-6 py-3">Pair</th>
                     <th scope="col" className="px-6 py-3">Comm</th>
-                    <th scope="col" className="px-6 py-3">Net Balance</th>
+                    <th scope="col" className="px-6 py-3">Opening Balance</th>
                     <th scope="col" className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {clients.map((client, index) => {
-                    const account = accounts.find(acc => acc.id === client.id);
-                    const netBalance = account?.balance ?? client.activeBalance ?? 0;
-                    const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
+                    const balance = client.activeBalance || 0;
+                    const balanceColor = balance >= 0 ? 'text-green-500' : 'text-red-500';
 
                     return (
                       <tr key={client.id} className="bg-card border-b hover:bg-muted/50">
@@ -332,7 +329,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                         <td className="px-6 py-4 font-medium whitespace-nowrap">{client.name}</td>
                         <td className="px-6 py-4">{client.pair}</td>
                         <td className="px-6 py-4">{client.comm}%</td>
-                        <td className={`px-6 py-4 font-bold ${balanceColor}`}>{formatNumber(netBalance)}</td>
+                        <td className={`px-6 py-4 font-bold ${balanceColor}`}>{formatNumber(balance)}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                               <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')}>
@@ -379,9 +376,8 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
             <ScrollArea className="h-full">
               <div className="space-y-4">
                 {clients.map((client) => {
-                  const account = accounts.find(acc => acc.id === client.id);
-                  const netBalance = account?.balance ?? client.activeBalance ?? 0;
-                  const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
+                  const balance = client.activeBalance || 0;
+                  const balanceColor = balance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
                     <Card key={client.id} className="p-4">
@@ -417,8 +413,8 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                         </DropdownMenu>
                       </div>
                       <div className="mt-4">
-                        <p className="text-sm text-muted-foreground">Net Balance</p>
-                        <p className={`text-2xl font-bold ${balanceColor}`}>₹{formatNumber(netBalance)}</p>
+                        <p className="text-sm text-muted-foreground">Opening Balance</p>
+                        <p className={`text-2xl font-bold ${balanceColor}`}>₹{formatNumber(balance)}</p>
                       </div>
                       <div className="mt-4 flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => openTransactionDialog(client, 'deposit')}>
