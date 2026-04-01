@@ -218,7 +218,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
         <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/20 px-6 py-4">
           <div>
             <CardTitle className="text-xl font-black uppercase tracking-widest text-primary">Manage Clients</CardTitle>
-            <CardDescription className="text-xs uppercase font-bold text-muted-foreground mt-1">Configure client details and security deposits</CardDescription>
+            <CardDescription className="text-xs uppercase font-bold text-muted-foreground mt-1">Configure client details, security deposits and limits</CardDescription>
           </div>
           <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
             if (!open) {
@@ -283,7 +283,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="activeBalance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Opening Balance</Label>
+                        <Label htmlFor="activeBalance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Limit Balance</Label>
                         <Input id="activeBalance" name="activeBalance" type="number" defaultValue={editingClient?.activeBalance} placeholder="e.g. 0" className="rounded-none border-zinc-800 font-bold" />
                     </div>
                     <div className="space-y-1.5">
@@ -311,7 +311,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                     <th scope="col" className="px-6 py-4 tracking-widest">Client Name</th>
                     <th scope="col" className="px-6 py-4 tracking-widest">Pair/Comm</th>
                     <th scope="col" className="px-6 py-4 tracking-widest text-amber-500">Security Money</th>
-                    <th scope="col" className="px-6 py-4 tracking-widest">Opening Balance</th>
+                    <th scope="col" className="px-6 py-4 tracking-widest">Limit Balance</th>
                     <th scope="col" className="px-6 py-4 text-right tracking-widest">Actions</th>
                   </tr>
                 </thead>
@@ -338,11 +338,11 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                           <div className="flex items-center justify-end gap-1.5">
                               <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')} className="h-8 rounded-none border-primary/20 hover:bg-primary/5 font-bold uppercase text-[9px]">
                                   <ArrowUpCircle className="mr-1.5 h-3 w-3 text-primary" />
-                                  Deposit
+                                  Add Limit
                               </Button>
                               <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'withdraw')} className="h-8 rounded-none border-destructive/20 hover:bg-destructive/5 font-bold uppercase text-[9px]">
                                   <ArrowDownCircle className="mr-1.5 h-3 w-3 text-destructive" />
-                                  Withdraw
+                                  Red Limit
                               </Button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -406,7 +406,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                       </div>
                       <div className="px-4 py-3 grid grid-cols-2 gap-4 border-t border-zinc-800 bg-card">
                         <div>
-                          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Opening Bal</p>
+                          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Limit Bal</p>
                           <p className={`text-lg font-black tabular-nums ${balanceColor}`}>₹{formatNumber(balance)}</p>
                         </div>
                         <div>
@@ -416,10 +416,10 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                       </div>
                       <div className="p-2 flex gap-2 border-t border-zinc-800 bg-muted/5">
                         <Button variant="outline" size="sm" className="flex-1 rounded-none border-primary/20 font-bold uppercase text-[9px]" onClick={() => openTransactionDialog(client, 'deposit')}>
-                            Deposit
+                            Add Limit
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1 rounded-none border-destructive/20 font-bold uppercase text-[9px]" onClick={() => openTransactionDialog(client, 'withdraw')}>
-                            Withdraw
+                            Red Limit
                         </Button>
                       </div>
                     </Card>
@@ -460,7 +460,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
         <DialogContent className="sm:max-w-lg rounded-none border-zinc-800">
             <DialogHeader>
                 <DialogTitle className="font-black uppercase tracking-widest text-primary">
-                  {transactionType === 'deposit' ? 'Record Deposit' : 'Record Withdrawal'}
+                  {transactionType === 'deposit' ? 'Add Limit' : 'Reduce Limit'}
                 </DialogTitle>
                 <DialogDescription className="font-bold uppercase text-[10px]">Client: {transactionClient?.name}</DialogDescription>
             </DialogHeader>
