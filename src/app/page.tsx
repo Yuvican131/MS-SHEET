@@ -571,6 +571,7 @@ export default function Home() {
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               getDeclaredNumber={getDeclaredNumber}
+              onClientTransaction={handleClientTransaction}
             />
           </TabsContent>
            <TabsContent value="ledger-record">

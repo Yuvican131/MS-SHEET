@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,14 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import type { Client } from "@/hooks/useClients"
 import { formatNumber } from "@/lib/utils"
-import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText, Calendar as CalendarIcon, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Building, CircleDollarSign, HandCoins, User, Search, ChevronRight, Activity, TrendingUp, TrendingDown, ReceiptText, Calendar as CalendarIcon, ChevronLeft, ChevronRight as ChevronRightIcon, Plus, Save } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { format, addDays, subDays } from "date-fns"
+import { useToast } from "@/hooks/use-toast"
 
 export type DrawData = {
   totalAmount: number;
@@ -34,6 +37,7 @@ type AccountsManagerProps = {
   selectedDate: Date | undefined;
   onDateChange: (date: Date | undefined) => void;
   getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
+  onClientTransaction?: (clientId: string, amount: number) => void;
 };
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -114,9 +118,14 @@ const DrawsPerformanceTable = ({
   );
 };
 
-export default function AccountsManager({ accounts, clients, selectedDate, onDateChange, getDeclaredNumber }: AccountsManagerProps) {
+export default function AccountsManager({ accounts, clients, selectedDate, onDateChange, getDeclaredNumber, onClientTransaction }: AccountsManagerProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(accounts[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+
+  const [jamaAmount, setJamaAmount] = useState('');
+  const [lenaAmount, setLenaAmount] = useState('');
+  const [settlementReference, setSettlementReference] = useState('');
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(acc => 
@@ -141,6 +150,31 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
 
   const handleNextDay = () => {
     if (selectedDate) onDateChange(addDays(selectedDate, 1));
+  };
+
+  const handleSettlement = () => {
+    const jama = parseFloat(jamaAmount) || 0;
+    const lena = parseFloat(lenaAmount) || 0;
+    
+    if (jama > 0 && lena > 0) {
+        toast({ title: "Invalid Entry", description: "Please enter a value in either Jama or Lena, not both.", variant: "destructive" });
+        return;
+    }
+    if (jama === 0 && lena === 0) {
+        toast({ title: "Invalid Entry", description: "Please enter an amount for Jama or Lena.", variant: "destructive" });
+        return;
+    }
+
+    if (!onClientTransaction || !selectedAccountId) return;
+
+    // Jama = Client pays me (+), Lena = I pay client (-)
+    const settlementChange = jama - lena;
+    onClientTransaction(selectedAccountId, settlementChange);
+    
+    toast({ title: "Settlement Recorded", description: `₹${formatNumber(Math.abs(settlementChange))} recorded for ${selectedAccount?.clientName}.` });
+    setJamaAmount('');
+    setLenaAmount('');
+    setSettlementReference('');
   };
 
   return (
@@ -249,23 +283,61 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
               <CardHeader className="border-b bg-card p-0 overflow-hidden">
                 <div className="flex flex-col lg:flex-row">
                   <div className="p-6 border-b lg:border-b-0 lg:border-r bg-muted/5 min-w-[300px]">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter">
-                          {selectedAccount.clientName}
-                        </CardTitle>
-                        {selectedClient?.paymentType === 'pre-paid' && (
-                          <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none uppercase text-[9px] font-black px-2 h-5">Pre-paid</Badge>
-                        )}
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter">
+                            {selectedAccount.clientName}
+                          </CardTitle>
+                          {selectedClient?.paymentType === 'pre-paid' && (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none uppercase text-[9px] font-black px-2 h-5">Pre-paid</Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
+                            <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
+                            <ReceiptText className="h-3 w-3" /> {selectedClient?.comm}% COMM
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
-                          <User className="h-3 w-3" /> {selectedClient?.name || 'N/A'}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase font-bold">
-                          <ReceiptText className="h-3 w-3" /> {selectedClient?.comm}% COMM
-                        </p>
-                      </div>
+                      
+                      {/* Record Settlement Button */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="sm" className="w-full font-black uppercase tracking-widest text-[10px] h-10">
+                            <Plus className="mr-2 h-3.5 w-3.5" /> Record Settlement
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="start">
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-bold leading-none uppercase text-xs tracking-widest">Client Settlement</h4>
+                              <p className="text-[10px] text-muted-foreground uppercase font-bold">
+                                Record a payment adjustment for {selectedAccount.clientName}.
+                              </p>
+                            </div>
+                            <div className="grid gap-2">
+                              <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="jama-amount" className="text-[10px] font-black uppercase">Jama (Rcv)</Label>
+                                <Input id="jama-amount" placeholder="Amount" value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}} className="col-span-2 h-8 text-xs font-bold" />
+                              </div>
+                              <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="lena-amount" className="text-[10px] font-black uppercase">Lena (Pay)</Label>
+                                <Input id="lena-amount" placeholder="Amount" value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}} className="col-span-2 h-8 text-xs font-bold"/>
+                              </div>
+                              <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="settlement-ref" className="text-[10px] font-black uppercase">Ref</Label>
+                                <Input id="settlement-ref" placeholder="e.g. Cash" value={settlementReference} onChange={e => setSettlementReference(e.target.value)} className="col-span-2 h-8 text-xs font-bold"/>
+                              </div>
+                            </div>
+                            <Button onClick={handleSettlement} className="h-9 font-black uppercase tracking-widest text-[10px]">
+                              <Save className="mr-2 h-3.5 w-3.5" /> Save Entry
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
