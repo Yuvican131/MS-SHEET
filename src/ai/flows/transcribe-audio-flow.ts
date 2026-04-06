@@ -74,16 +74,26 @@ const transcribeAudioFlow = ai.defineFlow(
     const {text} = await ai.generate({
       prompt: [
         {media: {url: input.audioDataUri}},
-        {text: `You are an expert transcriber for a numbers game. 
+        {text: `You are an expert transcriber for a Jantri (numbers game). 
         Listen to the audio which contains a user calling in numbers and their amounts.
         
-        Examples of what you might hear:
-        - "01 pe 100, 05 pe 500" -> Output: "01=100 05=500"
-        - "दस नंबर पे पांच सौ" (Number 10 for 500) -> Output: "10=500"
-        - "double zero thousand" -> Output: "00=1000"
+        SPECIAL JANTRI TERMINOLOGY:
+        1. "Munda" (मुंडा) refers to numbers 01 to 09.
+           - "Munda ek" -> 01
+           - "Munda do" -> 02
+           - ... up to "Munda nau" -> 09
+           - "Munda das" -> 10
+        2. "Jodda" (जोड़ा) or "Sabhi Jodde" (सभी जोड़े) refers to the set of all pairs: 11, 22, 33, 44, 55, 66, 77, 88, 99, 00.
         
-        Focus strictly on the numbers and amounts. Format the output as "number=amount" pairs separated by spaces.
-        If there is general talk, ignore it. Only return the parsed entries.`},
+        Rules for Output:
+        - If someone says "Munda panch pe 100", output: "05=100"
+        - If someone says "Jodda pe 200" or "Saare jodde do sau", output: "11=200 22=200 33=200 44=200 55=200 66=200 77=200 88=200 99=200 00=200"
+        - Format the output strictly as "number=amount" pairs separated by spaces.
+        - Ignore general conversation, greetings, or filler words.
+        - Only return the parsed numeric entries.
+        
+        Audio Transcription Task:
+        Format: number=amount number=amount ...`},
       ],
     });
     
