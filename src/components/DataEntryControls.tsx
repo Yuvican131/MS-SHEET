@@ -4,15 +4,16 @@ import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperat
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download, Mic, Upload, StopCircle, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/hooks/useClients";
 import { formatNumber } from "@/lib/utils";
+import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 
 interface DataEntryControlsProps {
     clients: Client[];
@@ -68,6 +69,14 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
     const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
+    // Voice Recording States
+    const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const multiTextRef = useRef<HTMLTextAreaElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
@@ -81,6 +90,142 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
     }));
 
     const isDataEntryDisabled = !selectedClientId;
+
+    const processTranscribedText = (text: string) => {
+        if (!text.trim()) return;
+        
+        const updates: { [key: string]: number } = {};
+        let totalForCheck = 0;
+        let foundAny = false;
+
+        // Pattern to find numbers and amounts (e.g., "01 100", "01=100", "05-500")
+        const entryPattern = /((?:\d{1,3}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
+        let match;
+
+        while ((match = entryPattern.exec(text)) !== null) {
+            foundAny = true;
+            const numbersPart = match[1];
+            const amount = parseFloat(match[2]);
+            
+            if (!isNaN(amount)) {
+                const individualNumbers = numbersPart.split(/[,\s]+/).filter(n => n.length > 0);
+                individualNumbers.forEach(n => {
+                    const cleanedNum = n.replace(/[^0-9]/g, '');
+                    if (cleanedNum.length > 0) {
+                        let key = cleanedNum;
+                        const numInt = parseInt(cleanedNum, 10);
+                        if (numInt === 100 || cleanedNum === '00') {
+                            key = '00';
+                        } else {
+                            key = cleanedNum.padStart(2, '0').slice(-2);
+                        }
+                        updates[key] = (updates[key] || 0) + amount;
+                        totalForCheck += amount;
+                    }
+                });
+            }
+        }
+
+        if (!foundAny) {
+            // Fallback: try simple space-separated pairs
+            const tokens = text.trim().split(/[\s,]+/);
+            for (let i = 0; i < tokens.length; i += 2) {
+                const numToken = tokens[i];
+                const amtToken = tokens[i+1];
+                const amount = parseFloat(amtToken);
+                if (numToken && !isNaN(amount)) {
+                    const cleanedNum = numToken.replace(/[^0-9]/g, '');
+                    if (cleanedNum.length > 0) {
+                        foundAny = true;
+                        let key = cleanedNum;
+                        const numInt = parseInt(cleanedNum, 10);
+                        if (numInt === 100 || cleanedNum === '00') {
+                            key = '00';
+                        } else {
+                            key = cleanedNum.padStart(2, '0').slice(-2);
+                        }
+                        updates[key] = (updates[key] || 0) + amount;
+                        totalForCheck += amount;
+                    }
+                }
+            }
+        }
+
+        if (foundAny) {
+            if (checkBalance(totalForCheck)) {
+                onDataUpdate(updates, `[Voice] ${text}`);
+                toast({ title: "Voice Entries Added", description: `Processed: ${text.slice(0, 50)}...` });
+            }
+        } else {
+            toast({ title: "No Entries Found", description: "AI could not identify game entries in the audio.", variant: "destructive" });
+        }
+    };
+
+    const handleStartRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            chunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunksRef.current.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result as string;
+                    setIsTranscribing(true);
+                    try {
+                        const result = await transcribeAudio({ audioDataUri: base64Audio });
+                        processTranscribedText(result.text);
+                    } catch (error) {
+                        toast({ title: "Transcription Error", variant: "destructive" });
+                    } finally {
+                        setIsTranscribing(false);
+                        setIsVoiceDialogOpen(false);
+                    }
+                };
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+        } catch (err) {
+            toast({ title: "Microphone Error", description: "Please allow microphone access.", variant: "destructive" });
+        }
+    };
+
+    const handleStopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            setIsTranscribing(true);
+            try {
+                const result = await transcribeAudio({ audioDataUri: base64Audio });
+                processTranscribedText(result.text);
+            } catch (error) {
+                toast({ title: "Transcription Error", variant: "destructive" });
+            } finally {
+                setIsTranscribing(false);
+                setIsVoiceDialogOpen(false);
+            }
+        };
+    };
 
     const handleMultiTextApply = useCallback(() => {
         if (isDataEntryDisabled) {
@@ -475,6 +620,10 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                 />
                 <div className="grid grid-cols-2 gap-2 mt-1">
                     <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply (Enter)</Button>
+                    <Button onClick={() => setIsVoiceDialogOpen(true)} variant="secondary" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                        <Mic className="h-3 w-3 mr-1" />
+                        Voice Entry
+                    </Button>
                     <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                         <Trash2 className="h-3 w-3 mr-1" />
                         Clear
@@ -483,7 +632,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                         <Eye className="h-3 w-3 mr-1" />
                         View Entries
                     </Button>
-                    <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                    <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8 col-span-2" disabled={isDataEntryDisabled} size="sm">
                         <Download className="h-3 w-3 mr-1" />
                         Generate Sheet
                     </Button>
@@ -584,6 +733,55 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                 <DialogFooter className="sm:justify-between">
                   <DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose>
                   <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}><Copy className="mr-2 h-4 w-4" /> Copy</Button>
+                </DialogFooter>
+              </DialogContent>
+          </Dialog>
+
+          <Dialog open={isVoiceDialogOpen} onOpenChange={setIsVoiceDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Voice Entry / Call Recording</DialogTitle>
+                    <DialogDescription>Record your voice or upload a call recording to automatically add entries.</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center p-8 gap-6 border-2 border-dashed rounded-xl bg-muted/20">
+                    {isTranscribing ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            <p className="font-bold text-sm animate-pulse">AI is reading the audio...</p>
+                        </div>
+                    ) : isRecording ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="h-16 w-16 bg-red-500 rounded-full animate-ping opacity-50 absolute" />
+                            <Button size="icon" variant="destructive" className="h-16 w-16 rounded-full relative z-10" onClick={handleStopRecording}>
+                                <StopCircle className="h-8 w-8" />
+                            </Button>
+                            <p className="font-black uppercase text-xs tracking-widest text-red-500">Recording Live...</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-4 w-full">
+                            <Button className="h-16 text-lg font-black uppercase tracking-widest" onClick={handleStartRecording}>
+                                <Mic className="mr-2 h-6 w-6" /> Start Recording
+                            </Button>
+                            <div className="flex items-center gap-4 my-2">
+                                <div className="h-px bg-border flex-grow" />
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase">OR</span>
+                                <div className="h-px bg-border flex-grow" />
+                            </div>
+                            <Button variant="outline" className="h-12 font-bold uppercase text-xs" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4" /> Upload Call Recording
+                            </Button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept="audio/*" 
+                                onChange={handleFileUpload}
+                            />
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                 </DialogFooter>
               </DialogContent>
           </Dialog>

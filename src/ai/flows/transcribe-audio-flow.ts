@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview A flow for transcribing audio to text.
+ * @fileOverview A flow for transcribing audio and extracting game entries.
  *
- * - transcribeAudio - A function that transcribes audio.
+ * - transcribeAudio - A function that transcribes audio and focuses on Jantri entries.
  * - TranscribeAudioInput - The input type for the transcribeAudio function.
  * - TranscribeAudioOutput - The return type for the transcribeAudio function.
  */
@@ -21,7 +21,7 @@ const TranscribeAudioInputSchema = z.object({
 export type TranscribeAudioInput = z.infer<typeof TranscribeAudioInputSchema>;
 
 const TranscribeAudioOutputSchema = z.object({
-  text: z.string().describe('The transcribed text.'),
+  text: z.string().describe('The transcribed text formatted for easy parsing.'),
 });
 export type TranscribeAudioOutput = z.infer<typeof TranscribeAudioOutputSchema>;
 
@@ -32,7 +32,7 @@ export async function transcribeAudio(
     return await transcribeAudioFlow(input);
   } catch (error: any) {
     console.error("Transcription failed:", error);
-    return { text: "Transcription unavailable. Please check your API key." };
+    return { text: "" };
   }
 }
 
@@ -70,21 +70,23 @@ const transcribeAudioFlow = ai.defineFlow(
     outputSchema: TranscribeAudioOutputSchema,
   },
   async (input) => {
-    const audioBuffer = Buffer.from(
-      input.audioDataUri.substring(input.audioDataUri.indexOf(',') + 1),
-      'base64'
-    );
-    const wavData = await toWav(audioBuffer);
-    const wavDataUri = `data:audio/wav;base64,${wavData}`;
-    
-    // In Genkit 1.x, we reference models by string to be more resilient
+    // Basic transcription using Gemini 1.5 Flash
     const {text} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash',
       prompt: [
-        {media: {url: wavDataUri, contentType: 'audio/wav'}},
-        {text: `transcribe the audio`},
+        {media: {url: input.audioDataUri}},
+        {text: `You are an expert transcriber for a numbers game. 
+        Listen to the audio which contains a user calling in numbers and their amounts.
+        
+        Examples of what you might hear:
+        - "01 pe 100, 05 pe 500" -> Output: "01=100 05=500"
+        - "दस नंबर पे पांच सौ" (Number 10 for 500) -> Output: "10=500"
+        - "double zero thousand" -> Output: "00=1000"
+        
+        Focus strictly on the numbers and amounts. Format the output as "number=amount" pairs separated by spaces.
+        If there is general talk, ignore it. Only return the parsed entries.`},
       ],
     });
+    
     return {text: text || ""};
   }
 );
