@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { processOrder } from '@/ai/flows/process-order-flow';
 import { format } from 'date-fns';
 
 /**
- * API Route for n8n/WhatsApp Automation.
- * Expects: { "message": string, "clientPhoneNumber": string }
+ * API Route for n8n / WhatsApp Automation.
+ * This endpoint allows an external bot (like n8n) to push text messages
+ * which are then parsed by AI and recorded in the client's grid sheet automatically.
  */
 export async function POST(request: Request) {
   const { firestore } = initializeFirebase();
@@ -18,12 +19,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing message or clientPhoneNumber' }, { status: 400 });
     }
 
-    // 1. Find the User and Client associated with the phone number (matching the 'inOut' field)
+    // 1. Find the Client associated with the phone number.
+    // We search the 'inOut' field which stores contact info/phone.
     const usersSnapshot = await getDocs(collection(firestore, 'users'));
     let targetUserId: string | null = null;
     let targetClientId: string | null = null;
     let targetClient: any | null = null;
 
+    // Iterate through users to find the one who owns this client
     for (const userDoc of usersSnapshot.docs) {
       const clientsRef = collection(firestore, `users/${userDoc.id}/clients`);
       const q = query(clientsRef, where("inOut", "==", clientPhoneNumber));
@@ -39,23 +42,24 @@ export async function POST(request: Request) {
     }
 
     if (!targetUserId || !targetClientId || !targetClient) {
-      return NextResponse.json({ error: `Client with phone ${clientPhoneNumber} not found.` }, { status: 404 });
+      return NextResponse.json({ error: `Client with phone ${clientPhoneNumber} not found in any account.` }, { status: 404 });
     }
 
-    // 2. Use AI to parse the raw WhatsApp message
+    // 2. Use AI to parse the raw text message into structured entries
     const { draw, orders } = await processOrder({ message, clientPhoneNumber });
 
     if (!draw || !orders || orders.length === 0) {
-      return NextResponse.json({ error: 'AI could not extract entries from the message.' }, { status: 422 });
+      return NextResponse.json({ error: 'AI could not extract valid entries from the message.' }, { status: 422 });
     }
 
-    // 3. Update the Sheet Log (Upsert for the current day and draw)
+    // 3. Update or Create the Sheet Log for the current day and draw
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const sheetLogId = `${targetClientId}-${draw}-${todayStr}`;
     const logRef = doc(firestore, `users/${targetUserId}/sheetLogs`, sheetLogId);
 
     const logSnap = await getDoc(logRef);
     const existingLog = logSnap.exists() ? logSnap.data() : { data: {}, gameTotal: 0 };
+    
     const mergedData = { ...existingLog.data };
     let newTotal = existingLog.gameTotal;
 
@@ -74,17 +78,21 @@ export async function POST(request: Request) {
       date: todayStr,
       gameTotal: newTotal,
       data: mergedData,
-      rawInput: `[Automation] ${message}`,
+      rawInput: `[WhatsApp Bot] ${message}`,
+      updatedAt: serverTimestamp(),
       createdAt: existingLog.createdAt || new Date().toISOString()
     }, { merge: true });
 
     return NextResponse.json({ 
       success: true, 
-      message: `Processed ${orders.length} entries for ${targetClient.name} in ${draw}.` 
+      processedDraw: draw,
+      entryCount: orders.length,
+      clientName: targetClient.name,
+      message: `Successfully processed ${orders.length} entries for ${targetClient.name} in ${draw}.` 
     });
 
   } catch (error: any) {
-    console.error('Automation Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    console.error('Automation Processing Error:', error);
+    return NextResponse.json({ error: 'Failed to process automation request', details: error.message }, { status: 500 });
   }
 }

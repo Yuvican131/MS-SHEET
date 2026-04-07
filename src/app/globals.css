@@ -14,7 +14,7 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 150 70% 85%;
+    --primary: 150 40% 70%;
     --primary-foreground: 150 80% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -26,25 +26,25 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 150 70% 85%;
+    --ring: 150 40% 70%;
     --chart-1: 222.2 84% 4.9%;
-    --chart-2: 150 70% 85%;
+    --chart-2: 150 40% 70%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0rem;
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 150 70% 85%;
+    --sidebar-primary: 150 40% 70%;
     --sidebar-primary-foreground: 150 80% 10%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 150 70% 85%;
+    --sidebar-ring: 150 40% 70%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 150 70% 85%;
+    --grid-cell-total-color: 150 40% 70%;
     --grid-cell-focus-ring-color: 35 90% 45%;
   }
   .light {
@@ -54,7 +54,7 @@ body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 150 60% 60%;
+    --primary: 150 45% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -66,12 +66,12 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 150 60% 60%;
+    --ring: 150 45% 55%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 150 60% 60%;
-    --grid-cell-focus-ring-color: 150 60% 60%;
+    --grid-cell-total-color: 150 45% 55%;
+    --grid-cell-focus-ring-color: 150 45% 55%;
     --radius: 0rem;
   }
 }

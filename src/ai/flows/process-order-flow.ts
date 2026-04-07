@@ -2,10 +2,7 @@
 
 /**
  * @fileOverview An AI flow for processing a client's order from a raw text message.
- *
- * - processOrder - A function that parses a text message to extract order details.
- * - ProcessOrderInput - The input type for the processOrder function.
- * - ProcessOrderOutput - The return type for the processOrder function.
+ * Optimized for WhatsApp automation and Jantri specific terminology.
  */
 
 import {ai} from '@/ai/genkit';
@@ -35,7 +32,7 @@ export async function processOrder(
     return await processOrderFlow(input);
   } catch (error: any) {
     console.warn("AI Order Processing failed:", error);
-    throw new Error("Could not parse order message.");
+    throw new Error("Could not parse order message. Ensure it contains a valid draw name and entries.");
   }
 }
 
@@ -43,16 +40,36 @@ const prompt = ai.definePrompt({
   name: 'processOrderPrompt',
   input: {schema: ProcessOrderInputSchema},
   output: {schema: ProcessOrderOutputSchema},
-  prompt: `You are an expert Jantri order parser. Extract game entries from raw text messages.
+  prompt: `You are an expert Jantri order parser. Your task is to extract game entries from raw WhatsApp messages.
 
-Draw Names: FB, GB, GL, DS, DD, ML.
+DRAW NAMES: FB, GB, GL, DS, DD, ML.
 
-Common Formats:
-- "FB 01=100 05=500" -> Draw: FB, Orders: {01: 100, 05: 500}
-- "Gali mein munda ek 100" -> Draw: GL, Orders: {01: 100}
-- "Jodda 50" -> All pairs (11, 22, ..., 00) for 50 each.
+SPECIAL TERMINOLOGY & MAPPINGS:
+1. "Munda" (मुंडा) mapping:
+   - "Munda ek" -> 01
+   - "Munda do" -> 02
+   - "Munda teen" -> 03
+   - "Munda char" -> 04
+   - "Munda panch" -> 05
+   - "Munda che" -> 06
+   - "Munda sath" -> 07
+   - "Munda ath" -> 08
+   - "Munda nau" -> 09
+   - "Munda das" -> 10
 
-Output only valid 2-digit number strings (e.g., "01", "00", "99").
+2. "Jodda" (जोड़ा) / "Sabhi Jodde" (सभी जोड़े):
+   - This refers to ALL: 11, 22, 33, 44, 55, 66, 77, 88, 99, 00.
+   - Example: "Jodde pe 100" means 100 for each of those 10 numbers.
+
+3. Standard entries:
+   - "01=100" -> number: "01", amount: 100
+   - "05 500" -> number: "05", amount: 500
+   - "Pachaas pe sau" -> number: "50", amount: 100
+
+OUTPUT FORMAT:
+- You must identify exactly one draw name.
+- You must return an array of {number: string, amount: number} objects.
+- All numbers must be 2-digits (e.g., "01", "00", "99").
 
 Message: {{{message}}}
 Client Phone: {{{clientPhoneNumber}}}`,
