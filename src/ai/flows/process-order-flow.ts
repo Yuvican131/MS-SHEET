@@ -12,20 +12,19 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ProcessOrderInputSchema = z.object({
-  message: z.string().describe('The raw text message from the client.'),
+  message: z.string().describe('The raw text message from the client (e.g., "FB 01 100, 05 500").'),
   clientPhoneNumber: z.string().describe('The phone number of the client who sent the message.'),
 });
 export type ProcessOrderInput = z.infer<typeof ProcessOrderInputSchema>;
 
 const OrderDetailSchema = z.object({
-  number: z.string().describe('The 2-digit number to play.'),
+  number: z.string().describe('The 2-digit number to play (00-99).'),
   amount: z.number().describe('The amount to play for this number.'),
 });
 
 const ProcessOrderOutputSchema = z.object({
-  draw: z.string().describe('The draw name extracted from the message (e.g., FB, GB, DD).'),
-  orders: z.array(OrderDetailSchema).describe('An array of the numbers and amounts to play.'),
-  clientPhoneNumber: z.string().describe('The phone number of the client for confirmation.'),
+  draw: z.string().describe('The draw name (FB, GB, GL, DS, DD, ML).'),
+  orders: z.array(OrderDetailSchema).describe('The extracted numbers and amounts.'),
 });
 export type ProcessOrderOutput = z.infer<typeof ProcessOrderOutputSchema>;
 
@@ -35,13 +34,8 @@ export async function processOrder(
   try {
     return await processOrderFlow(input);
   } catch (error: any) {
-    console.warn("AI Order Processing unavailable:", error);
-    // Return a structured empty response if AI fails
-    return {
-      draw: "",
-      orders: [],
-      clientPhoneNumber: input.clientPhoneNumber
-    };
+    console.warn("AI Order Processing failed:", error);
+    throw new Error("Could not parse order message.");
   }
 }
 
@@ -49,17 +43,19 @@ const prompt = ai.definePrompt({
   name: 'processOrderPrompt',
   input: {schema: ProcessOrderInputSchema},
   output: {schema: ProcessOrderOutputSchema},
-  prompt: `You are an expert order processing system for a numbers game. You will receive a raw text message and the sender's phone number. Your task is to parse the message to extract the game draw, the numbers to play, and the amount for each number.
+  prompt: `You are an expert Jantri order parser. Extract game entries from raw text messages.
 
-The draw names are: DD, ML, FB, GB, GL, DS.
+Draw Names: FB, GB, GL, DS, DD, ML.
 
-The message may be in a natural language format. Extract all numbers and their corresponding amounts. If an amount applies to multiple numbers, create a separate order for each.
+Common Formats:
+- "FB 01=100 05=500" -> Draw: FB, Orders: {01: 100, 05: 500}
+- "Gali mein munda ek 100" -> Draw: GL, Orders: {01: 100}
+- "Jodda 50" -> All pairs (11, 22, ..., 00) for 50 each.
+
+Output only valid 2-digit number strings (e.g., "01", "00", "99").
 
 Message: {{{message}}}
-Client Phone Number: {{{clientPhoneNumber}}}
-
-Analyze the message and return a JSON object with the extracted draw, a list of orders, and the client's phone number.
-`,
+Client Phone: {{{clientPhoneNumber}}}`,
 });
 
 const processOrderFlow = ai.defineFlow(

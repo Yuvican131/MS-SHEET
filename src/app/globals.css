@@ -14,7 +14,7 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 150 60% 70%;
+    --primary: 150 70% 85%;
     --primary-foreground: 150 80% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -26,25 +26,25 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 150 60% 70%;
+    --ring: 150 70% 85%;
     --chart-1: 222.2 84% 4.9%;
-    --chart-2: 150 60% 70%;
+    --chart-2: 150 70% 85%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.8rem;
+    --radius: 0rem;
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 150 60% 70%;
+    --sidebar-primary: 150 70% 85%;
     --sidebar-primary-foreground: 150 80% 10%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 150 60% 70%;
+    --sidebar-ring: 150 70% 85%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 150 60% 70%;
+    --grid-cell-total-color: 150 70% 85%;
     --grid-cell-focus-ring-color: 35 90% 45%;
   }
   .light {
@@ -54,7 +54,7 @@ body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 150 60% 45%;
+    --primary: 150 60% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -66,13 +66,13 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 150 60% 45%;
+    --ring: 150 60% 60%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 150 60% 45%;
-    --grid-cell-focus-ring-color: 150 60% 45%;
-    --radius: 0.8rem;
+    --grid-cell-total-color: 150 60% 60%;
+    --grid-cell-focus-ring-color: 150 60% 60%;
+    --radius: 0rem;
   }
 }
 
@@ -89,7 +89,7 @@ body {
   .grid-sheet-layout {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
-    grid-template-rows: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(11, 1fr);
     gap: 1px;
     height: 100%;
     width: 100%;
@@ -100,16 +100,17 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    align-items: center;
+    align-items: flex-end;
     border: 1px solid hsl(var(--border));
     overflow: hidden;
+    border-radius: 0 !important;
   }
 
   .grid-cell-number {
     position: absolute;
     top: 2px;
     left: 4px;
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     font-weight: 900;
     color: hsl(var(--grid-cell-number-color));
     z-index: 10;
@@ -121,11 +122,12 @@ body {
     height: 100%;
     background: transparent;
     border: none !important;
-    text-align: center;
-    font-size: 1.1rem;
+    text-align: right;
+    font-size: 1.2rem;
     font-weight: 900;
     color: white;
-    padding-top: 1.2rem;
+    padding-top: 1.5rem;
+    padding-right: 4px;
     padding-bottom: 2px;
     border-radius: 0 !important;
   }
@@ -133,6 +135,7 @@ body {
   .grid-cell-input:focus {
     outline: none;
     background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 0 0 2px white;
   }
 }
 
