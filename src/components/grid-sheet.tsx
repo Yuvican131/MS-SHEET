@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -86,14 +87,31 @@ const MasterSheetViewer = ({
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
-  const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
+  const [currentLogs, setCurrentLogs] = useState<any[]>([]); // Grouped logs
   const [initialMasterData, setInitialMasterData] = useState<CellData>({});
   const [showCommissionLess, setShowCommissionLess] = useState(false);
 
   React.useEffect(() => {
     const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
-    setCurrentLogs(logsForDate);
-    setSelectedLogIndices(logsForDate.map((_, index) => index));
+    
+    // Group logs by clientId to avoid duplicates in the Master Sheet sidebar
+    const groupedMap: { [clientId: string]: any } = {};
+    logsForDate.forEach(log => {
+      if (!groupedMap[log.clientId]) {
+        groupedMap[log.clientId] = {
+          clientId: log.clientId,
+          clientName: log.clientName,
+          gameTotal: 0,
+          logs: []
+        };
+      }
+      groupedMap[log.clientId].gameTotal += log.gameTotal;
+      groupedMap[log.clientId].logs.push(log);
+    });
+
+    const groupedArray = Object.values(groupedMap);
+    setCurrentLogs(groupedArray);
+    setSelectedLogIndices(groupedArray.map((_, index) => index));
   }, [draw, date, allSavedLogs]);
 
   const calculateGrandTotal = (data: CellData) => {
@@ -105,23 +123,25 @@ const MasterSheetViewer = ({
     const newMasterData: CellData = {};
     
     selectedLogIndices.forEach(index => {
-      const logEntry = logsToProcess[index];
-      if (logEntry) {
-        const client = clients.find(c => c.id === logEntry.clientId);
-        const commissionRate = client ? (parseFloat(client.comm) / 100) : 0;
+      const groupedEntry = logsToProcess[index];
+      if (groupedEntry && groupedEntry.logs) {
+        groupedEntry.logs.forEach((logEntry: SavedSheetInfo) => {
+            const client = clients.find(c => c.id === logEntry.clientId);
+            const commissionRate = client ? (parseFloat(client.comm) / 100) : 0;
 
-        Object.entries(logEntry.data).forEach(([key, value]) => {
-          const numericValue = parseFloat(value) || 0;
-          let valueToAdd = numericValue;
+            Object.entries(logEntry.data).forEach(([key, value]) => {
+              const numericValue = parseFloat(value) || 0;
+              let valueToAdd = numericValue;
 
-          if (showCommissionLess) {
-            const commission = numericValue * commissionRate;
-            const netValue = numericValue - commission;
-            valueToAdd = Math.round(netValue);
-          }
+              if (showCommissionLess) {
+                const commission = numericValue * commissionRate;
+                const netValue = numericValue - commission;
+                valueToAdd = Math.round(netValue);
+              }
 
-          const existingValue = parseFloat(newMasterData[key]) || 0;
-          newMasterData[key] = String(existingValue + valueToAdd);
+              const existingValue = parseFloat(newMasterData[key]) || 0;
+              newMasterData[key] = String(existingValue + valueToAdd);
+            });
         });
       }
     });
@@ -348,7 +368,7 @@ const MasterSheetViewer = ({
                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Client Entries for {format(date, 'MMM do, yyyy')}</h3>
               <div className="space-y-2">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
-                      <div key={log.id} className={cn(
+                      <div key={log.clientId} className={cn(
                           "flex items-center justify-between p-3 rounded-none border transition-all",
                           selectedLogIndices.includes(index) ? "bg-zinc-900 border-green-500/30" : "bg-zinc-900/40 border-transparent opacity-50"
                       )}>
