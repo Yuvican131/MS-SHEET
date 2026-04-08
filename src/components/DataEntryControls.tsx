@@ -98,7 +98,6 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
         let totalForCheck = 0;
         let foundAny = false;
 
-        // Pattern to find numbers and amounts (e.g., "01 100", "01=100", "05-500")
         const entryPattern = /((?:\d{1,3}[,\s]*)+)[\s=x*:\-(]+\s*(\d+)\)?/g;
         let match;
 
@@ -126,35 +125,10 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             }
         }
 
-        if (!foundAny) {
-            // Fallback: try simple space-separated pairs
-            const tokens = text.trim().split(/[\s,]+/);
-            for (let i = 0; i < tokens.length; i += 2) {
-                const numToken = tokens[i];
-                const amtToken = tokens[i+1];
-                const amount = parseFloat(amtToken);
-                if (numToken && !isNaN(amount)) {
-                    const cleanedNum = numToken.replace(/[^0-9]/g, '');
-                    if (cleanedNum.length > 0) {
-                        foundAny = true;
-                        let key = cleanedNum;
-                        const numInt = parseInt(cleanedNum, 10);
-                        if (numInt === 100 || cleanedNum === '00') {
-                            key = '00';
-                        } else {
-                            key = cleanedNum.padStart(2, '0').slice(-2);
-                        }
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalForCheck += amount;
-                    }
-                }
-            }
-        }
-
         if (foundAny) {
             if (checkBalance(totalForCheck)) {
                 onDataUpdate(updates, `[Voice] ${text}`);
-                toast({ title: "Voice Entries Added", description: `Processed: ${text.slice(0, 50)}...` });
+                toast({ title: "Voice Entries Added", description: `Processed audio successfully.` });
             }
         } else {
             toast({ title: "No Entries Found", description: "AI could not identify game entries in the audio.", variant: "destructive" });
@@ -300,7 +274,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
         if (!foundAny) {
             toast({ 
                 title: "Format Error", 
-                description: "Use formats like 01=100, 01 100, or 01,02=500", 
+                description: "Use formats like 01=100 or 01 100", 
                 variant: "destructive" 
             });
             return;
@@ -345,7 +319,13 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             e.preventDefault();
             switch (from) {
                 case 'laddiNum1':
+                    // Mirror Num 1 to Num 2 if mirroring is intended, then move focus
+                    if (!laddiNum2 && !runningLaddi) {
+                        setLaddiNum2(laddiNum1);
+                    }
                     laddiNum2Ref.current?.focus();
+                    // Select text in Num 2 to allow immediate override or another Enter to confirm
+                    setTimeout(() => laddiNum2Ref.current?.select(), 0);
                     break;
                 case 'laddiNum2':
                     laddiAmountRef.current?.focus();
@@ -425,7 +405,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
             const start = parseInt(laddiNum1, 10);
             const end = parseInt(laddiNum2, 10);
             if (isNaN(start) || isNaN(end) || start < 1 || end > 100 || start > end) {
-                toast({ title: "Running Error", description: "Invalid range. Please enter numbers between 1 and 100 with start <= end.", variant: "destructive" });
+                toast({ title: "Running Error", description: "Invalid range. Start must be less than end.", variant: "destructive" });
                 return;
             }
             for (let i = start; i <= end; i++) {
@@ -609,7 +589,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
                 </div>
                 <Textarea
                     ref={multiTextRef}
-                    placeholder="Type 2-digits (auto-comma), Enter for '=', Enter again to Apply..."
+                    placeholder="Type entries like 01=100 or 01 100"
                     rows={6}
                     value={multiText}
                     onChange={handleMultiTextChange}
@@ -741,7 +721,7 @@ export const DataEntryControls = forwardRef<any, DataEntryControlsProps>(({
               <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Voice Entry / Call Recording</DialogTitle>
-                    <DialogDescription>Record your voice or upload a call recording to automatically add entries.</DialogDescription>
+                    <DialogDescription>Record or upload audio to add entries.</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center justify-center p-8 gap-6 border-2 border-dashed rounded-xl bg-muted/20">
                     {isTranscribing ? (
