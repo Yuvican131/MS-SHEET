@@ -102,8 +102,9 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const [declarationDraw, setDeclarationDraw] = useState("");
   const [declarationNumber, setDeclarationNumber] = useState("");
   const [isDeclarationDialogOpen, setIsDeclarationDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const [drawToDelete, setDrawToDelete] = useState<ActiveSheet | null>(null);
   
+  const { toast } = useToast();
   const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
 
