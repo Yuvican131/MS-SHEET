@@ -3,23 +3,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is the 'global-admin' or the authenticated owner.
+     * @description Direct access for the fixed 'global-admin' ID.
+     * This allows the app to function without Firebase Authentication.
      */
-    function isOwner(userId) {
-      return userId == 'global-admin' || (request.auth != null && request.auth.uid == userId);
+    match /users/global-admin/{allPaths=**} {
+      allow read, write: if true;
     }
 
     /**
-     * @description Grants access to all data under a user's path if they are the owner.
-     * This covers clients, sheetLogs, declaredNumbers, and any other sub-collections.
+     * @description Fallback for any other user IDs (requires authentication).
      */
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Explicitly allow access to the users collection itself for discovery if needed
+    // Explicitly allow access to the users collection itself for the API search logic
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if true;
     }
   }
 }
