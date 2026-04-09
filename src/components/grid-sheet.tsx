@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -759,7 +758,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
+      <Dialog open={!!logToDelete} onOpenChange={setLogToDelete(null)}>
         <DialogContent className="rounded-none">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
