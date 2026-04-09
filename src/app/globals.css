@@ -14,8 +14,9 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 142 70% 45%;
-    --primary-foreground: 142 80% 10%;
+    /* Balanced Emerald Green */
+    --primary: 158 64% 52%;
+    --primary-foreground: 158 80% 5%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
@@ -26,26 +27,26 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 142 70% 45%;
+    --ring: 158 64% 52%;
     --chart-1: 222.2 84% 4.9%;
-    --chart-2: 142 70% 45%;
+    --chart-2: 158 64% 52%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0rem;
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 142 70% 45%;
-    --sidebar-primary-foreground: 142 80% 10%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 158 80% 5%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 142 70% 45%;
+    --sidebar-ring: 158 64% 52%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 142 70% 45%;
-    --grid-cell-focus-ring-color: 142 70% 45%;
+    --grid-cell-total-color: 158 64% 52%;
+    --grid-cell-focus-ring-color: 158 64% 52%;
   }
   .light {
     --background: 0 0% 96%;
@@ -54,7 +55,8 @@ body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 142 70% 45%;
+    /* Balanced Emerald Green Light Mode */
+    --primary: 158 64% 45%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -66,12 +68,12 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 142 70% 45%;
+    --ring: 158 64% 45%;
     --grid-cell-border-color: 240 4% 16%;
     --grid-cell-number-color: 187 71% 57%;
     --grid-cell-amount-color: 0 0% 100%;
-    --grid-cell-total-color: 142 70% 45%;
-    --grid-cell-focus-ring-color: 142 70% 45%;
+    --grid-cell-total-color: 158 64% 45%;
+    --grid-cell-focus-ring-color: 158 64% 45%;
     --radius: 0rem;
   }
 }
