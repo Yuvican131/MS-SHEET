@@ -46,7 +46,7 @@
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": ["phone"]
   },
   "firestore": {
     "structure": [
