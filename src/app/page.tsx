@@ -68,9 +68,10 @@ type ActiveSheet = {
 
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -91,11 +92,16 @@ export default function Home() {
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
-  const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
+  const [formSelectedDate, setFormSelectedDate] = useState<Date | undefined>(undefined);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
 
   useEffect(() => {
+    setMounted(true);
+    const now = new Date();
+    setSelectedDate(now);
+    setFormSelectedDate(now);
+
     try {
       const savedSettlements = localStorage.getItem('brokerSettlements');
       if (savedSettlements) {
@@ -366,8 +372,12 @@ export default function Home() {
     </TabsList>
   );
 
-  const isSheetAlreadyAdded = formSelectedDraw ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;
+  const isSheetAlreadyAdded = formSelectedDraw && formSelectedDate ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;
 
+  // Hydration safety: Return empty shell or placeholder until mounted
+  if (!mounted) {
+    return <div className="flex h-screen w-full items-center justify-center bg-background" />;
+  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">

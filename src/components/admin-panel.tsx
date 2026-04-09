@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,10 +41,11 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
 }) => {
+    const [mounted, setMounted] = useState(false);
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
@@ -51,6 +53,8 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     const {toast} = useToast();
 
     useEffect(() => {
+        setMounted(true);
+        setSelectedDate(new Date());
         const savedComm = localStorage.getItem('upperBrokerComm');
         const savedPair = localStorage.getItem('upperBrokerPair');
         if (savedComm) {
@@ -140,6 +144,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
 
 
     const reportData: ReportRow[] = useMemo(() => {
+        if (!selectedDate || !mounted) return [];
         if (viewMode === 'month') {
             const monthStart = startOfMonth(selectedDate);
             const monthEnd = endOfMonth(selectedDate);
@@ -178,7 +183,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             }).filter(row => row.hasActivity);
         }
 
-    }, [selectedDate, viewMode, calculateNetForPeriod]);
+    }, [selectedDate, viewMode, calculateNetForPeriod, mounted]);
   
     const grandTotalForPeriod = useMemo(() => {
         return reportData.reduce((acc, row) => {
@@ -190,6 +195,8 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     }, [reportData]);
 
     const hasData = reportData.length > 0;
+
+    if (!mounted) return null;
 
     return (
         <div className="space-y-6">
@@ -282,7 +289,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
+                                Total profit for {selectedDate ? format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy") : ''}
                             </p>
                         </CardContent>
                     </Card>
@@ -348,9 +355,10 @@ type AdminPanelProps = {
 
 
 export default function AdminPanel({ userId, clients, savedSheetLog, settlements, setSettlements }: AdminPanelProps) {
+    const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
     const { declaredNumbers } = useDeclaredNumbers(userId);
-    const [summaryDate, setSummaryDate] = useState<Date>(new Date());
+    const [summaryDate, setSummaryDate] = useState<Date | undefined>(undefined);
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
 
@@ -360,6 +368,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const [isSettlementHistoryOpen, setIsSettlementHistoryOpen] = useState(false);
     
     useEffect(() => {
+        setMounted(true);
+        setSummaryDate(new Date());
         const savedComm = localStorage.getItem('upperBrokerComm');
         const savedPair = localStorage.getItem('upperBrokerPair');
         if (savedComm) setAppliedUpperComm(savedComm);
@@ -432,6 +442,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, [savedSheetLog, settlements, calculateDailyNet]);
 
     const handleSettlement = () => {
+        if (!summaryDate) return;
         const jama = parseFloat(jamaAmount) || 0;
         const lena = parseFloat(lenaAmount) || 0;
         
@@ -470,6 +481,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     };
 
     const handleDeleteSettlement = (settlementId: string) => {
+        if (!summaryDate) return;
         const dateKey = format(summaryDate, 'yyyy-MM-dd');
         setSettlements(prev => {
             const daySettlements = prev[dateKey] || [];
@@ -507,6 +519,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     };
 
     const finalSummaryForDay = useMemo(() => {
+        if (!summaryDate) return { totalRaw: 0, commission: 0, passing: 0, finalNet: 0 };
         const allLogs = Object.values(savedSheetLog).flat();
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
@@ -540,7 +553,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         };
     }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
-    const dailySettlements = settlements[format(summaryDate, 'yyyy-MM-dd')] || [];
+    const dailySettlements = summaryDate ? settlements[format(summaryDate, 'yyyy-MM-dd')] || [] : [];
+
+    if (!mounted) return null;
 
   return (
     <Card className="h-full flex flex-col">
@@ -570,7 +585,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         <div className="space-y-2">
                             <h4 className="font-medium leading-none">Add Settlement</h4>
                             <p className="text-sm text-muted-foreground">
-                                Record a payment to adjust the running total for {format(summaryDate, 'PPP')}.
+                                Record a payment to adjust the running total for {summaryDate ? format(summaryDate, 'PPP') : ''}.
                             </p>
                         </div>
                         <div className="grid gap-2">
@@ -627,8 +642,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
               {draws.map(draw => {
-                  const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
-                  const dateStr = format(summaryDate, 'yyyy-MM-dd');
+                  const { totalRaw, totalPassing } = summaryDate ? calculateDrawSummary(draw, summaryDate) : { totalRaw: 0, totalPassing: 0 };
+                  const dateStr = summaryDate ? format(summaryDate, 'yyyy-MM-dd') : '';
                   const declaredNumber = declaredNumbers[`${draw}-${dateStr}`]?.number;
                   return (
                       <div key={draw} className="bg-card border rounded-lg p-4 flex flex-col justify-between overflow-hidden">
@@ -698,7 +713,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
           <DialogContent className="max-w-2xl">
               <DialogHeader>
                   <DialogTitle>Settlement History</DialogTitle>
-                  <DialogDescription>Recorded settlements for {format(summaryDate, 'PPP')}</DialogDescription>
+                  <DialogDescription>Recorded settlements for {summaryDate ? format(summaryDate, 'PPP') : ''}</DialogDescription>
               </DialogHeader>
               <div className="my-4">
                   <ScrollArea className="max-h-[60vh]">

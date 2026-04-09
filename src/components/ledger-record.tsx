@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -30,12 +30,20 @@ type PerformanceRecord = {
 
 
 const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: LedgerRecordProps) => {
+    const [mounted, setMounted] = useState(false);
+    const [now, setNow] = useState<Date | undefined>(undefined);
     const [selectedClient, setSelectedClient] = useState<string>("all");
     const [selectedDraw, setSelectedDraw] = useState<string>("all");
     const [dateRange, setDateRange] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
+    useEffect(() => {
+        setMounted(true);
+        setNow(new Date());
+    }, []);
+
     const performanceData: PerformanceRecord[] = useMemo(() => {
+        if (!mounted || !now) return [];
         const clientDrawMap: { [key: string]: { totalInvested: number, profitLoss: number } } = {};
 
         // Iterate over each draw and its logs
@@ -44,7 +52,6 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
             if (selectedDraw !== 'all' && drawName !== selectedDraw) return;
             
             let filteredLogs = logs;
-            const now = new Date();
             if (dateRange === 'today') {
                 filteredLogs = logs.filter(log => isSameDay(new Date(log.date), now));
             } else if (dateRange === 'yesterday') {
@@ -102,7 +109,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
 
         return allPerformance.sort((a, b) => a.profitLoss - b.profitLoss);
 
-    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange, searchQuery, declaredNumbers]);
+    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange, searchQuery, declaredNumbers, mounted, now]);
     
     const overallTotalInvested = useMemo(() => {
         return performanceData.reduce((acc, record) => acc + record.totalInvested, 0);
@@ -111,6 +118,8 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
     const overallTotalProfitLoss = useMemo(() => {
         return performanceData.reduce((acc, record) => acc + record.profitLoss, 0);
     }, [performanceData]);
+
+    if (!mounted) return null;
 
     return (
         <div className="space-y-4">
@@ -213,7 +222,3 @@ export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNu
     </Card>
   );
 }
-
-    
-
-    
