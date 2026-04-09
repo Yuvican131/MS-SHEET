@@ -21,14 +21,17 @@ export type Client = {
   securityMoney: number;
 };
 
+// Fixed ID for single-tenant app silo
+const SILO_ID = "global-admin";
+
 export const useClients = (userId?: string) => {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { deleteSheetLogsForClient } = useSheetLog(userId);
+  const { deleteSheetLogsForClient } = useSheetLog(SILO_ID);
 
   const clientsColRef = useMemoFirebase(() => {
     if (!userId) return null;
-    return collection(firestore, `users/${userId}/clients`);
+    return collection(firestore, `users/${SILO_ID}/clients`);
   }, [firestore, userId]);
 
   const { data, isLoading, error } = useCollection<Omit<Client, 'id'>>(clientsColRef);
@@ -36,36 +39,32 @@ export const useClients = (userId?: string) => {
   const clients = useMemo(() => data || [], [data]);
 
   const addClient = (client: Omit<Client, 'id'>) => {
-    if (!clientsColRef || !userId) return;
+    if (!clientsColRef) return;
     addDocumentNonBlocking(clientsColRef, client);
     toast({ title: "Client Added", description: `${client.name} has been added.` });
   };
 
   const updateClient = (client: Client) => {
-    if (!userId) return;
-    const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
+    const clientRef = doc(firestore, `users/${SILO_ID}/clients`, client.id);
     const { id, ...clientData } = client;
     updateDocumentNonBlocking(clientRef, clientData);
     toast({ title: "Client Updated", description: `${client.name}'s details have been updated.` });
   };
 
   const deleteClient = (id: string, name: string) => {
-    if (!userId) return;
     deleteSheetLogsForClient(id, false).then(() => {
-      const clientRef = doc(firestore, `users/${userId}/clients`, id);
+      const clientRef = doc(firestore, `users/${SILO_ID}/clients`, id);
       deleteDocumentNonBlocking(clientRef);
       toast({ title: "Client Deleted", description: `${name} and all their data have been deleted.` });
     });
   };
   
   const clearClientData = (id: string, name: string) => {
-    if (!userId) return;
     deleteSheetLogsForClient(id, true);
     toast({ title: "Client Data Cleared", description: `All sheet data for ${name} has been cleared.` });
   }
 
   const handleClientTransaction = (clientId: string, amount: number) => {
-    if (!userId) return;
     const client = clients.find(c => c.id === clientId);
     if (client) {
       const newBalance = (client.activeBalance || 0) + amount;

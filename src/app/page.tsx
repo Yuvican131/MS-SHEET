@@ -65,6 +65,9 @@ type ActiveSheet = {
     date: Date;
 };
 
+// Use a fixed global ID for the data but require login to reach this component
+const GLOBAL_ADMIN_ID = "global-admin";
+
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -78,16 +81,17 @@ export default function Home() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Checking Security Status...</p>
+        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Secure Protocol...</p>
       </div>
     );
   }
 
+  // If no user is authenticated, show the passcode screen
   if (!user) {
     return <AuthScreen />;
   }
 
-  return <AuthenticatedApp userId={user.uid} onLogout={() => signOut(auth)} />;
+  return <AuthenticatedApp userId={GLOBAL_ADMIN_ID} onLogout={() => signOut(auth)} />;
 }
 
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
@@ -144,7 +148,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     const uniqueSheetKeys = new Set<string>();
     const allSheets: ActiveSheet[] = [];
 
-    // 1. Extract sheets from actual saved logs
     Object.values(savedSheetLog).flat().forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
@@ -155,7 +158,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       }
     });
 
-    // 2. Add manual sheets that haven't been saved yet
     manualSheets.forEach(manualSheet => {
         const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
         if (!uniqueSheetKeys.has(key)) {
@@ -346,7 +348,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             <div className="flex items-center gap-2">
                 <div className="flex items-center space-x-2 mr-2">
                   <Sun className="h-4 w-4" />
-                  <Switch checked={theme === 'dark'} onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+                  <Switch id="theme-switch" checked={theme === 'dark'} onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
                   <Moon className="h-4 w-4" />
                 </div>
                 <Button variant="ghost" size="icon" onClick={onLogout} className="h-9 w-9 text-muted-foreground">
@@ -495,7 +497,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
              <Input value={declarationNumber} onChange={(e) => setDeclarationNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))} placeholder="00" maxLength={2} className="text-center text-3xl font-black h-20" />
           </div>
           <DialogFooter>
-            <Button onClick={() => { removeDeclaredNumber(declarationDraw, selectedDate!); setIsDeclarationDialogOpen(false); }} variant="destructive">Undeclare</Button>
+            <Button onClick={() => { if(selectedDate) removeDeclaredNumber(declarationDraw, selectedDate); setIsDeclarationDialogOpen(false); }} variant="destructive">Undeclare</Button>
             <Button onClick={handleDeclareOrUndeclare} disabled={declarationNumber.length !== 2}>Declare Result</Button>
           </DialogFooter>
         </DialogContent>

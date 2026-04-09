@@ -18,13 +18,15 @@ export interface SavedSheetInfo {
   createdAt?: string;
 }
 
+const SILO_ID = "global-admin";
+
 export const useSheetLog = (userId?: string) => {
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const sheetLogColRef = useMemoFirebase(() => {
     if (!userId) return null;
-    return collection(firestore, `users/${userId}/sheetLogs`);
+    return collection(firestore, `users/${SILO_ID}/sheetLogs`);
   }, [firestore, userId]);
 
   const { data: sheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
@@ -42,7 +44,7 @@ export const useSheetLog = (userId?: string) => {
   }, [sheetLogData]);
 
   const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'> | SavedSheetInfo) => {
-    if (!sheetLogColRef || !userId) return;
+    if (!sheetLogColRef) return;
     
     if ('id' in entry) {
       const docRef = doc(firestore, sheetLogColRef.path, entry.id);
@@ -51,22 +53,19 @@ export const useSheetLog = (userId?: string) => {
     } else {
       addDocumentNonBlocking(sheetLogColRef, entry);
     }
-  }, [sheetLogColRef, firestore, userId]);
+  }, [sheetLogColRef, firestore]);
   
   const deleteSheetLogEntry = useCallback((logId: string) => {
-    if (!userId) return;
     setSheetLogData(prevData => prevData?.filter(log => log.id !== logId) || null);
-    const docRef = doc(firestore, `users/${userId}/sheetLogs`, logId);
+    const docRef = doc(firestore, `users/${SILO_ID}/sheetLogs`, logId);
     deleteDocumentNonBlocking(docRef);
     toast({ title: "Entry Deleted" });
-  }, [userId, firestore, setSheetLogData, toast]);
+  }, [firestore, setSheetLogData, toast]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
-    if (!userId) return Promise.resolve();
-
     return new Promise(async (resolve, reject) => {
         try {
-            const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
+            const q = query(collection(firestore, `users/${SILO_ID}/sheetLogs`), where("clientId", "==", clientId));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
@@ -89,15 +88,14 @@ export const useSheetLog = (userId?: string) => {
             reject(e);
         }
     });
-  }, [userId, firestore, setSheetLogData]);
+  }, [firestore, setSheetLogData]);
   
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
-    if (!userId) return;
     const dateStr = format(date, 'yyyy-MM-dd');
 
     try {
       const q = query(
-        collection(firestore, `users/${userId}/sheetLogs`),
+        collection(firestore, `users/${SILO_ID}/sheetLogs`),
         where("draw", "==", draw),
         where("date", "==", dateStr)
       );
@@ -120,7 +118,7 @@ export const useSheetLog = (userId?: string) => {
     } catch (e) {
       console.error("Error clearing draw logs: ", e);
     }
-  }, [userId, firestore, setSheetLogData, toast]);
+  }, [firestore, setSheetLogData, toast]);
 
   return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
 };

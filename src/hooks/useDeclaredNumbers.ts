@@ -13,13 +13,15 @@ export interface DeclaredNumber {
   _deleted?: boolean;
 }
 
+const SILO_ID = "global-admin";
+
 export const useDeclaredNumbers = (userId?: string) => {
   const firestore = useFirestore();
   const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | null }>({});
 
   const declaredNumbersColRef = useMemoFirebase(() => {
     if (!userId) return null;
-    return collection(firestore, `users/${userId}/declaredNumbers`);
+    return collection(firestore, `users/${SILO_ID}/declaredNumbers`);
   }, [firestore, userId]);
 
   const { data, isLoading, error } = useCollection<Omit<DeclaredNumber, 'id'>>(declaredNumbersColRef);
@@ -50,10 +52,10 @@ export const useDeclaredNumbers = (userId?: string) => {
   }, [declaredNumbers]);
 
   const setDeclaredNumber = (draw: string, number: string, date: Date) => {
-    if (!userId || !date) return;
+    if (!date) return;
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
-    const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
+    const docRef = doc(firestore, `users/${SILO_ID}/declaredNumbers`, docId);
     
     setLocalDeclaredNumbers(prev => ({
         ...prev,
@@ -64,13 +66,13 @@ export const useDeclaredNumbers = (userId?: string) => {
   };
   
   const removeDeclaredNumber = (draw: string, date: Date) => {
-    if (!userId || !date) return;
+    if (!date) return;
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
 
     setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: { ...prev[docId], _deleted: true } as DeclaredNumber | null }));
 
-    const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
+    const docRef = doc(firestore, `users/${SILO_ID}/declaredNumbers`, docId);
     deleteDocumentNonBlocking(docRef);
   };
 

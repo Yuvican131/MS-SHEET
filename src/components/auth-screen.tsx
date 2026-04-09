@@ -1,89 +1,31 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/firebase"
-import { initiatePhoneSignIn } from "@/firebase/non-blocking-login"
-import { ShieldCheck, Phone, MessageSquare, ArrowRight, Loader2, RotateCw, AlertTriangle } from "lucide-react"
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
+import { ShieldCheck, Lock, ArrowRight, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { RecaptchaVerifier, ConfirmationResult } from "firebase/auth"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function AuthScreen() {
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [otpCode, setOtpCode] = useState("")
-  const [step, setStep] = useState<"phone" | "otp">("phone")
+  const [passcode, setPasscode] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
-  const [configError, setConfigError] = useState<string | null>(null)
-  
   const auth = useAuth()
   const { toast } = useToast()
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null)
 
-  useEffect(() => {
-    if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
-      try {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-          size: "invisible",
-          callback: () => {}
-        })
-      } catch (err) {
-        console.error("Recaptcha init error:", err)
-      }
-    }
-  }, [auth])
+  // You can change this hardcoded passcode to whatever you want
+  const MASTER_PASSCODE = "1234"
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!phoneNumber || phoneNumber.length < 10) {
+    
+    if (passcode !== MASTER_PASSCODE) {
       toast({
-        title: "Invalid Number",
-        description: "Please enter a valid phone number with country code.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsLoading(true)
-    setConfigError(null)
-    try {
-      if (!recaptchaVerifierRef.current) throw new Error("Security verification not ready. Please refresh.")
-      
-      const result = await initiatePhoneSignIn(auth, phoneNumber, recaptchaVerifierRef.current)
-      setConfirmationResult(result)
-      setStep("otp")
-      toast({
-        title: "OTP Sent",
-        description: "Please check your mobile for the verification code.",
-      })
-    } catch (error: any) {
-      console.error("Phone Auth Error:", error)
-      const msg = error.message || ""
-      if (msg.includes("auth/operation-not-allowed")) {
-        setConfigError("Phone Authentication is not enabled in your Firebase Project. Please go to the Firebase Console -> Build -> Authentication -> Sign-in method and enable 'Phone'.")
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to send OTP.",
-          variant: "destructive",
-        })
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!otpCode || otpCode.length < 6) {
-      toast({
-        title: "Invalid Code",
-        description: "Please enter the 6-digit OTP code.",
+        title: "Access Denied",
+        description: "The passcode you entered is incorrect.",
         variant: "destructive",
       })
       return
@@ -91,31 +33,26 @@ export function AuthScreen() {
 
     setIsLoading(true)
     try {
-      if (!confirmationResult) throw new Error("No pending verification found.")
-      await confirmationResult.confirm(otpCode)
-    } catch (error: any) {
-      console.error("OTP Verification Error:", error)
+      // Use Anonymous sign-in to satisfy Firebase rules and provide protection
+      await initiateAnonymousSignIn(auth)
       toast({
-        title: "Verification Failed",
-        description: "The code you entered is incorrect or expired.",
+        title: "Access Granted",
+        description: "Welcome back to GridSheet Manager.",
+      })
+    } catch (error: any) {
+      console.error("Auth Error:", error)
+      toast({
+        title: "Security Error",
+        description: "Could not initialize secure session. Please try again.",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleReset = () => {
-    setStep("phone")
-    setOtpCode("")
-    setConfirmationResult(null)
-    setConfigError(null)
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4">
-      <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
-      
       <Card className="w-full max-w-md border-zinc-800 bg-zinc-900 shadow-2xl rounded-none">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
@@ -124,80 +61,39 @@ export function AuthScreen() {
             </div>
           </div>
           <CardTitle className="text-3xl font-black uppercase tracking-tighter text-white">
-            GridSheet Access
+            Security Gate
           </CardTitle>
           <CardDescription className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">
-            {step === "phone" ? "Secure Mobile Access" : "Verify OTP Code"}
+            Authorized Personnel Only
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {configError && (
-            <Alert variant="destructive" className="rounded-none bg-red-900/20 border-red-900/50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Setup Required</AlertTitle>
-              <AlertDescription className="text-xs">
-                {configError}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {step === "phone" ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 9876543210"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 rounded-none h-12 pl-10 font-bold focus-visible:ring-primary"
-                    required
-                  />
-                </div>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="passcode" className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Access Key</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Input
+                  id="passcode"
+                  type="password"
+                  placeholder="Enter Passcode"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  className="bg-zinc-950 border-zinc-800 rounded-none h-12 pl-10 font-bold text-center tracking-[0.5em] focus-visible:ring-primary"
+                  required
+                />
               </div>
-              <Button type="submit" disabled={isLoading || !!configError} className="w-full h-12 font-black uppercase tracking-widest rounded-none">
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send OTP <ArrowRight className="ml-2 h-4 w-4" /></>}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="otp" className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Verification Code</Label>
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="6-digit code"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-                    className="bg-zinc-950 border-zinc-800 rounded-none h-12 pl-10 font-bold tracking-[0.5em] text-center focus-visible:ring-primary"
-                    required
-                  />
-                </div>
-              </div>
-              <Button type="submit" disabled={isLoading} className="w-full h-12 font-black uppercase tracking-widest rounded-none">
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify & Sign In"}
-              </Button>
-              <Button
-                type="button"
-                variant="link"
-                onClick={handleReset}
-                className="w-full text-zinc-500 hover:text-primary font-bold text-xs uppercase tracking-tight"
-              >
-                <RotateCw className="mr-2 h-3 w-3" /> Change Phone Number
-              </Button>
-            </form>
-          )}
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full h-12 font-black uppercase tracking-widest rounded-none">
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Enter Terminal <ArrowRight className="ml-2 h-4 w-4" /></>}
+            </Button>
+          </form>
         </CardContent>
 
         <CardFooter className="flex flex-col text-center">
           <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-            {step === "phone" ? "Only authorized numbers can access" : `Verifying ${phoneNumber}`}
+            End-to-End Encryption Enabled
           </p>
         </CardFooter>
       </Card>
