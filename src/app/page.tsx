@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager from "@/components/clients-manager"
@@ -113,8 +114,8 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
-  const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
   const [formSelectedDate, setFormSelectedDate] = useState<Date | undefined>(undefined);
+  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
 
@@ -140,22 +141,24 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     }
   }, [settlements, userId]);
   
-  useEffect(() => {
+  const activeSheets = useMemo(() => {
     const uniqueSheetKeys = new Set<string>();
-    const sheetsFromLogs: ActiveSheet[] = [];
+    const allSheets: ActiveSheet[] = [];
 
+    // 1. Extract sheets from actual saved logs
     Object.values(savedSheetLog).flat().forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
         uniqueSheetKeys.add(key);
         const dateParts = log.date.split('-').map(Number);
+        // Using UTC to match storage format
         const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-        sheetsFromLogs.push({ draw: log.draw, date: logDate });
+        allSheets.push({ draw: log.draw, date: logDate });
       }
     });
 
-    const allSheets = [...sheetsFromLogs];
-    activeSheets.forEach(manualSheet => {
+    // 2. Add manual sheets that haven't been saved yet
+    manualSheets.forEach(manualSheet => {
         const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
         if (!uniqueSheetKeys.has(key)) {
             uniqueSheetKeys.add(key);
@@ -170,8 +173,8 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
     });
 
-    setActiveSheets(allSheets);
-  }, [savedSheetLog, activeSheets]);
+    return allSheets;
+  }, [savedSheetLog, manualSheets]);
 
 
   const updateAccountsFromLog = useCallback(() => {
@@ -261,9 +264,11 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     if(formSelectedDraw && formSelectedDate) {
         const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
         const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
+        
+        // Check if sheet already exists in combined list
         const sheetExists = activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
         if (!sheetExists) {
-            setActiveSheets(prev => [newSheet, ...prev]);
+            setManualSheets(prev => [newSheet, ...prev]);
         }
     }
   };
@@ -302,7 +307,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     setDeclarationNumber("");
   };
 
-  const TabListContent = () => (
+  const NavTabsList = () => (
     <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
       <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
@@ -335,10 +340,10 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             <div className="flex items-center flex-grow">
               {isMobile ? (
                   <ScrollArea className="w-full whitespace-nowrap">
-                      <TabListContent />
+                      <NavTabsList />
                   </ScrollArea>
               ) : (
-                  <TabListContent />
+                  <NavTabsList />
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -419,7 +424,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                     {activeSheets.map((sheet, index) => {
                       const declaredNumber = getDeclaredNumber(sheet.draw, sheet.date);
                       return (
-                      <Card key={index} className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50">
+                      <Card key={`${sheet.draw}-${index}`} className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50">
                         <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => handleOpenSheet(sheet)}>
                            <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-primary text-primary font-bold text-lg">{sheet.draw}</div>
                            <div>
