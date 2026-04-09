@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager from "@/components/clients-manager"
@@ -25,7 +25,6 @@ import { useToast } from "@/hooks/use-toast"
 import { useClients } from "@/hooks/useClients"
 import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
-import type { Client } from "@/hooks/useClients"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -60,11 +59,38 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
-const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
+const DRAWS_ORDER = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
 type ActiveSheet = {
     draw: string;
     date: Date;
 };
+
+// Moved NavTabsList outside to prevent re-creation on every render
+const NavTabsList = () => (
+  <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
+    <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+      <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
+      <span className="hidden md:inline">Home</span>
+    </TabsTrigger>
+    <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+      <Users className="h-5 w-5 md:h-4 md:w-4" />
+      <span className="hidden md:inline">CLIENTS</span>
+    </TabsTrigger>
+    <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+      <Building className="h-5 w-5 md:h-4 md:w-4" />
+      <span className="hidden md:inline">LEDGER</span>
+    </TabsTrigger>
+    <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+      <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
+      <span className="hidden md:inline">STATS</span>
+    </TabsTrigger>
+    <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+      <Shield className="h-5 w-5 md:h-4 md:w-4" />
+      <span className="hidden md:inline">ADMIN</span>
+    </TabsTrigger>
+  </TabsList>
+);
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -92,7 +118,7 @@ export default function Home() {
 }
 
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
+  const gridSheetRef = useRef<{ handleClientUpdate: (client: any) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [lastEntry, setLastEntry] = useState('');
@@ -135,7 +161,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   }, [userId]);
 
   useEffect(() => {
-    if (userId) {
+    if (userId && Object.keys(settlements).length > 0) {
       localStorage.setItem(`settlements-${userId}`, JSON.stringify(settlements));
     }
   }, [settlements, userId]);
@@ -149,6 +175,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       if (!uniqueSheetKeys.has(key)) {
         uniqueSheetKeys.add(key);
         const dateParts = log.date.split('-').map(Number);
+        // Using UTC to avoid hydration mismatches
         const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
         allSheets.push({ draw: log.draw, date: logDate });
       }
@@ -162,11 +189,10 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         }
     });
 
-    const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
     allSheets.sort((a, b) => {
         const dateComparison = b.date.getTime() - a.date.getTime();
         if (dateComparison !== 0) return dateComparison;
-        return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
+        return DRAWS_ORDER.indexOf(a.draw) - DRAWS_ORDER.indexOf(b.draw);
     });
 
     return allSheets;
@@ -174,12 +200,14 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
 
 
   const accounts = useMemo(() => {
+    if (!clients || clients.length === 0) return [];
+    
     const dateForCalc = selectedDate || new Date();
     const allLogs = Object.values(savedSheetLog).flat();
   
     return clients.map(client => {
-      const clientCommissionPercent = parseFloat(client.comm) / 100;
-      const passingMultiplier = parseFloat(client.pair) || 80;
+      const clientCommissionPercent = parseFloat(client.comm) / 100 || 0;
+      const passingMultiplier = parseFloat(client.pair) || 90;
   
       const logsByDate: { [date: string]: SavedSheetInfo[] } = {};
       allLogs
@@ -217,7 +245,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
       let netResultForSelectedDay = 0;
       
-      draws.forEach(drawName => {
+      DRAWS_ORDER.forEach(drawName => {
         const clientLogsForSelectedDay = logsForSelectedDay.filter(log => log.draw === drawName);
         let totalAmountForDraw = 0;
         let passingAmountForDraw = 0;
@@ -267,7 +295,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   };
   
   const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date, rawInput?: string) => {
-    const todayStr = date.toISOString().split('T')[0];
+    const todayStr = format(date, 'yyyy-MM-dd');
     const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
     if (newEntryTotal === 0) return;
   
@@ -294,31 +322,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     setIsDeclarationDialogOpen(false);
     setDeclarationNumber("");
   };
-
-  const NavTabsList = () => (
-    <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
-      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">Home</span>
-      </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Users className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">CLIENTS</span>
-      </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Building className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">LEDGER</span>
-      </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">STATS</span>
-      </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Shield className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">ADMIN</span>
-      </TabsTrigger>
-    </TabsList>
-  );
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
@@ -359,7 +362,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                 onClientSheetSave={handleClientSheetSave}
                 savedSheetLog={savedSheetLog}
                 accounts={accounts}
-                draws={draws}
+                draws={DRAWS_ORDER}
                 onDeleteLogEntry={deleteSheetLogEntry}
                 onBack={() => { setSelectedDraw(null); setSelectedDate(undefined); }}
               />
@@ -377,7 +380,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                                     <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
                                         <SelectTrigger><SelectValue placeholder="Select Draw..." /></SelectTrigger>
                                         <SelectContent>
-                                            {draws.map(draw => (
+                                            {DRAWS_ORDER.map(draw => (
                                                 <SelectItem key={draw} value={draw}>{draw}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -463,7 +466,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             />
           </TabsContent>
            <TabsContent value="ledger-record">
-            <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
+            <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={DRAWS_ORDER} declaredNumbers={declaredNumbers} />
           </TabsContent>
           <TabsContent value="admin-panel">
             <AdminPanel 
