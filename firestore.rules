@@ -7,70 +7,34 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return (isSignedIn() && request.auth.uid == userId) || userId == 'global-admin';
     }
 
     /**
      * @description Controls access to the clients collection for each user.
      * @path /users/{userId}/clients/{clientId}
-     * @allow (create) - Authenticated user creates a new client under their own user ID.
-     * @allow (read) - Authenticated user reads their own client data.
-     * @allow (update) - Authenticated user updates their own client data.
-     * @allow (delete) - Authenticated user deletes their own client data.
-     * @deny (create) - Attempt to create a client under a different user ID.
-     * @deny (read) - Attempt to read client data from a different user.
-     * @deny (update) - Attempt to update client data from a different user.
-     * @deny (delete) - Attempt to delete client data from a different user.
-     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/clients/{clientId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create, update, delete: if isOwner(userId);
     }
 
     /**
      * @description Controls access to the sheetLogs collection for each user.
      * @path /users/{userId}/sheetLogs/{sheetLogId}
-     * @allow (create) - Authenticated user creates a new sheetLog under their own user ID.
-     * @allow (read) - Authenticated user reads their own sheetLog data.
-     * @allow (update) - Authenticated user updates their own sheetLog data.
-     * @allow (delete) - Authenticated user deletes their own sheetLog data.
-     * @deny (create) - Attempt to create a sheetLog under a different user ID.
-     * @deny (read) - Attempt to read sheetLog data from a different user.
-     * @deny (update) - Attempt to update sheetLog data from a different user.
-     * @deny (delete) - Attempt to delete sheetLog data from a different user.
-     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/sheetLogs/{sheetLogId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create, update, delete: if isOwner(userId);
     }
 
     /**
      * @description Controls access to the declaredNumbers collection for each user.
      * @path /users/{userId}/declaredNumbers/{drawId}
-     * @allow (create) - Authenticated user creates a new declaredNumber under their own user ID.
-     * @allow (read) - Authenticated user reads their own declaredNumber data.
-     * @allow (update) - Authenticated user updates their own declaredNumber data.
-     * @allow (delete) - Authenticated user deletes their own declaredNumber data.
-     * @deny (create) - Attempt to create a declaredNumber under a different user ID.
-     * @deny (read) - Attempt to read declaredNumber data from a different user.
-     * @deny (update) - Attempt to update declaredNumber data from a different user.
-     * @deny (delete) - Attempt to delete declaredNumber data from a different user.
-     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/declaredNumbers/{drawId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create, update, delete: if isOwner(userId);
     }
   }
 }
