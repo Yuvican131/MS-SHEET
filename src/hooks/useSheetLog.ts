@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useCallback } from 'react';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
@@ -31,9 +30,7 @@ export const useSheetLog = (userId?: string) => {
   const { data: sheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
 
   const savedSheetLog = useMemo(() => {
-    if (!sheetLogData) {
-      return {};
-    }
+    if (!sheetLogData) return {};
     const logByDraw: { [key: string]: SavedSheetInfo[] } = {};
     sheetLogData.forEach(log => {
       if (!logByDraw[log.draw]) {
@@ -45,28 +42,23 @@ export const useSheetLog = (userId?: string) => {
   }, [sheetLogData]);
 
   const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'> | SavedSheetInfo) => {
-    if (!sheetLogColRef) return;
+    if (!sheetLogColRef || !userId) return;
     
     if ('id' in entry) {
-      // This is an update to an existing entry
       const docRef = doc(firestore, sheetLogColRef.path, entry.id);
       const { id, ...entryData } = entry;
-      // The useCollection hook will handle the UI update via its real-time listener.
-      // No manual/optimistic update is needed here.
       updateDocumentNonBlocking(docRef, entryData);
     } else {
-      // This is a new entry
-      // The useCollection hook will handle the UI update via its real-time listener.
       addDocumentNonBlocking(sheetLogColRef, entry);
     }
-  }, [sheetLogColRef, firestore]);
+  }, [sheetLogColRef, firestore, userId]);
   
   const deleteSheetLogEntry = useCallback((logId: string) => {
     if (!userId) return;
     setSheetLogData(prevData => prevData?.filter(log => log.id !== logId) || null);
     const docRef = doc(firestore, `users/${userId}/sheetLogs`, logId);
     deleteDocumentNonBlocking(docRef);
-    toast({ title: "Entry Deleted", description: "The log entry has been removed." });
+    toast({ title: "Entry Deleted" });
   }, [userId, firestore, setSheetLogData, toast]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
@@ -78,37 +70,29 @@ export const useSheetLog = (userId?: string) => {
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                if (showToast) toast({ title: "No Data", description: "No sheet data found for this client to clear." });
                 resolve();
                 return;
             }
 
             const batch = writeBatch(firestore);
-            querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
+            querySnapshot.forEach((doc) => batch.delete(doc.ref));
             await batch.commit();
 
-            // After successful deletion, update the local state.
             setSheetLogData(currentLogs => {
                 if (!currentLogs) return null;
                 return currentLogs.filter(log => log.clientId !== clientId);
             });
 
-            if (showToast) toast({ title: "Success", description: `Cleared all sheet data for the client.` });
             resolve();
-
         } catch (e) {
             console.error("Error clearing sheet logs: ", e);
-            if (showToast) toast({ title: "Error", description: "Could not clear sheet data.", variant: "destructive" });
             reject(e);
         }
     });
-  }, [userId, firestore, setSheetLogData, toast]);
+  }, [userId, firestore, setSheetLogData]);
   
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
     if (!userId) return;
-    
     const dateStr = format(date, 'yyyy-MM-dd');
 
     try {
@@ -119,38 +103,24 @@ export const useSheetLog = (userId?: string) => {
       );
       const querySnapshot = await getDocs(q);
 
-      if (querySnapshot.empty) {
-        toast({ title: "No Data", description: `No sheet data found for draw ${draw} on this date.` });
-        return;
-      }
+      if (querySnapshot.empty) return;
       
       const logsToDeleteIds = querySnapshot.docs.map(doc => doc.id);
       
-      // Optimistically update the UI by filtering out the logs that are about to be deleted.
       setSheetLogData(prevData => {
         if (!prevData) return null;
         return prevData.filter(log => !logsToDeleteIds.includes(log.id));
       });
 
       const batch = writeBatch(firestore);
-      querySnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+      querySnapshot.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
 
-      toast({ title: "Success", description: `Cleared all sheet data for draw ${draw} on ${dateStr}.` });
+      toast({ title: "Success", description: `Cleared draw data.` });
     } catch (e) {
-      console.error("Error clearing draw sheet logs: ", e);
-      toast({ title: "Error", description: `Could not clear sheet data for draw ${draw}.`, variant: "destructive" });
-      // Optionally, you could revert the optimistic update here if the batch commit fails.
+      console.error("Error clearing draw logs: ", e);
     }
   }, [userId, firestore, setSheetLogData, toast]);
 
-  const getPreviousDataForClient = useCallback((clientId: string, draw: string, dateStr: string) => {
-    if (!sheetLogData) return undefined;
-    const log = sheetLogData.find(l => l.clientId === clientId && l.draw === draw && l.date === dateStr);
-    return log?.data;
-  }, [sheetLogData]);
-
-  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
+  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
 };

@@ -63,6 +63,7 @@ export type GridSheetProps = {
   accounts: Account[];
   draws: string[];
   onDeleteLogEntry: (logId: string) => void;
+  onBack?: () => void;
 }
 
 const MasterSheetViewer = ({
@@ -86,14 +87,12 @@ const MasterSheetViewer = ({
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
-  const [currentLogs, setCurrentLogs] = useState<any[]>([]); // Grouped logs
+  const [currentLogs, setCurrentLogs] = useState<any[]>([]); 
   const [initialMasterData, setInitialMasterData] = useState<CellData>({});
   const [showCommissionLess, setShowCommissionLess] = useState(false);
 
   React.useEffect(() => {
     const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
-    
-    // Group logs by clientId to avoid duplicates in the Master Sheet sidebar
     const groupedMap: { [clientId: string]: any } = {};
     logsForDate.forEach(log => {
       if (!groupedMap[log.clientId]) {
@@ -209,54 +208,37 @@ const MasterSheetViewer = ({
     }
 
     setMasterSheetData(newMasterData);
-    toast({ title: "Adjustment Applied", description: `Applied ${type} to all active cells.` });
+    toast({ title: "Adjustment Applied" });
   };
 
   const handleLogSelectionChange = (index: number) => {
     setSelectedLogIndices(prev =>
-      prev.includes(index)
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
     );
   };
   
   const handleGenerateSheet = () => {
     const valueToCells: { [value: string]: string [] } = {};
-
     for (let i = 1; i <= 100; i++) {
         const displayKey = i.toString().padStart(2, '0');
         const dataKey = i === 100 ? '00' : displayKey;
         const value = masterSheetData[dataKey];
         if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
             const roundedVal = String(Math.round(parseFloat(value)));
-            if (!valueToCells[roundedVal]) {
-                valueToCells[roundedVal] = [];
-            }
+            if (!valueToCells[roundedVal]) valueToCells[roundedVal] = [];
             valueToCells[roundedVal].push(displayKey);
         }
     }
-
     const sheetBody = Object.entries(valueToCells)
         .map(([value, cells]) => {
             cells.sort((a, b) => parseInt(a) - parseInt(b));
             return `${cells.join(',')}=${value}`;
-        })
-        .join('\n');
-    
-    const grandTotal = calculateGrandTotal(masterSheetData);
-    const totalString = `Total = ${formatNumber(grandTotal)}`;
-    const fullContent = `${draw} | ${format(date, 'PPP')}\n\n${sheetBody}\n\n${totalString}`;
-
-    setGeneratedSheetContent(fullContent);
+        }).join('\n');
+    const totalString = `Total = ${formatNumber(calculateGrandTotal(masterSheetData))}`;
+    setGeneratedSheetContent(`${draw} | ${format(date, 'PPP')}\n\n${sheetBody}\n\n${totalString}`);
     setIsGeneratedSheetDialogOpen(true);
   };
   
-  const handleCopyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-        toast({ title: "Copied to clipboard!" });
-    });
-  };
-
   const masterSheetRowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => calculateRowTotal(rowIndex, masterSheetData));
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
   
@@ -273,31 +255,25 @@ const MasterSheetViewer = ({
                         const hasValue = !!masterSheetData[dataKey] && parseFloat(masterSheetData[dataKey]) !== 0;
                         return (
                             <div key={`master-cell-${dataKey}`} className={cn(
-                                "relative flex flex-col justify-end items-center border border-zinc-800 rounded-none transition-all h-full min-h-0 pb-0.5",
+                                "relative flex flex-col justify-end items-center border border-zinc-800 rounded-none h-full min-h-0 pb-0.5",
                                 hasValue ? "bg-zinc-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]" : "bg-transparent"
                             )}>
-                                <div className="absolute top-0.5 left-1 text-[12px] lg:text-[15px] select-none pointer-events-none z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
-                                <div className="font-black text-xs lg:text-xl text-white">
-                                    {hasValue ? formatNumber(masterSheetData[dataKey]) : ''}
-                                </div>
+                                <div className="absolute top-0.5 left-1 text-[12px] lg:text-[15px] z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
+                                <div className="font-black text-xs lg:text-xl text-white">{hasValue ? formatNumber(masterSheetData[dataKey]) : ''}</div>
                             </div>
                         );
                     })}
-                    <div className="flex items-center justify-center font-black border border-zinc-800 rounded-none bg-zinc-900/50 h-full min-h-0 overflow-hidden">
-                        <span className="text-[10px] lg:text-xs text-green-500 font-black px-0.5">
-                            {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
-                        </span>
+                    <div className="flex items-center justify-center border border-zinc-800 bg-zinc-900/50 h-full min-h-0">
+                        <span className="text-[10px] lg:text-xs text-green-500 font-black">{masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}</span>
                     </div>
                 </React.Fragment>
             ))}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-black h-full min-h-0 border border-zinc-800 rounded-none bg-zinc-900/50 overflow-hidden">
-                     <span className="text-[10px] lg:text-xs text-green-500 font-black px-0.5">
-                        {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
-                    </span>
+                <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center border border-zinc-800 bg-zinc-900/50 h-full min-h-0">
+                     <span className="text-[10px] lg:text-xs text-green-500 font-black">{masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}</span>
                 </div>
             ))}
-            <div className="flex items-center justify-center font-black text-xs lg:text-lg border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-full min-h-0 overflow-hidden">
+            <div className="flex items-center justify-center border-2 border-green-500/50 bg-zinc-900 text-green-500 h-full min-h-0 text-xs lg:text-lg font-black">
                 {formatNumber(masterSheetGrandTotal)}
             </div>
         </div>
@@ -307,13 +283,13 @@ const MasterSheetViewer = ({
         <ScrollArea className="flex-1">
           <div className="p-4 lg:p-6 space-y-6">
             <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Manual Controls</h3>
-              <div className="flex items-center justify-between p-3 rounded-none bg-zinc-900 border border-zinc-800">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Master Controls</h3>
+              <div className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800">
                   <div className="flex items-center gap-3">
                       <Switch id="comm-less" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
-                      <Label htmlFor="comm-less" className="text-xs font-bold text-zinc-300">Show Commission Less</Label>
+                      <Label htmlFor="comm-less" className="text-xs font-bold text-zinc-300">Net Comm Only</Label>
                   </div>
-                  <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-none">
+                  <Button onClick={() => setMasterSheetData(initialMasterData)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white rounded-none">
                       <RotateCcw className="h-4 w-4" />
                   </Button>
               </div>
@@ -321,42 +297,39 @@ const MasterSheetViewer = ({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Cutting</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold text-white" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
                     <Button size="sm" onClick={() => handleApplyAdjustment('cutting')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Less (%)</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold text-white" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
                     <Button size="sm" onClick={() => handleApplyAdjustment('less')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Label className="w-14 text-[10px] font-bold uppercase text-zinc-500">Dabba</Label>
-                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold focus:ring-green-500/50 rounded-none" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                    <Input placeholder="Value" className="h-9 bg-zinc-900 border-zinc-800 text-xs font-bold text-white" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
                     <Button size="sm" onClick={() => handleApplyAdjustment('dabba')} className="h-9 px-4 bg-green-600 hover:bg-green-700 text-[10px] font-bold uppercase rounded-none">Apply</Button>
                 </div>
               </div>
             </div>
 
-            <Card className="bg-zinc-900 border-zinc-800 rounded-none overflow-hidden shadow-xl">
+            <Card className="bg-zinc-900 border-zinc-800 rounded-none overflow-hidden">
                 <div className="p-3 bg-zinc-950 border-b border-zinc-800 text-center">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Profit/Loss Summary</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Broker Summary</span>
                 </div>
                 <div className="p-4 space-y-3">
                     <div className="flex justify-between items-center">
-                        <span className="text-xs text-zinc-400">Original Total</span>
+                        <span className="text-xs text-zinc-400">Total Volume</span>
                         <span className="text-xs font-bold text-zinc-200">₹{formatNumber(initialGrandTotal)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-xs text-zinc-400">Adjusted Total</span>
+                        <span className="text-xs text-zinc-400">Adjusted Net</span>
                         <span className="text-xs font-bold text-zinc-200">₹{formatNumber(masterSheetGrandTotal)}</span>
                     </div>
                     <Separator className="bg-zinc-800" />
                     <div className="flex justify-between items-center pt-1">
-                        <span className="text-sm font-bold text-zinc-100">Net Profit/Loss</span>
-                        <span className={cn(
-                            "text-sm font-black",
-                            netProfit >= 0 ? "text-green-500" : "text-red-500"
-                        )}>
+                        <span className="text-sm font-bold text-zinc-100">Broker Profit</span>
+                        <span className={cn("text-sm font-black", netProfit >= 0 ? "text-green-500" : "text-red-500")}>
                             {netProfit >= 0 ? "+" : ""}₹{formatNumber(netProfit)}
                         </span>
                     </div>
@@ -364,7 +337,7 @@ const MasterSheetViewer = ({
             </Card>
 
             <div className="space-y-4">
-               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Client Entries for {format(date, 'MMM do, yyyy')}</h3>
+               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Consolidated Clients</h3>
               <div className="space-y-2">
                   {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                       <div key={log.clientId} className={cn(
@@ -376,17 +349,17 @@ const MasterSheetViewer = ({
                                   id={`log-master-${index}`}
                                   checked={selectedLogIndices.includes(index)}
                                   onCheckedChange={() => handleLogSelectionChange(index)}
-                                  className="h-5 w-5 rounded-none border-zinc-700 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                  className="h-5 w-5 rounded-none border-zinc-700"
                               />
                               <label htmlFor={`log-master-${index}`} className="text-xs font-bold truncate text-zinc-300">
-                                {index + 1}. {log.clientName}
+                                {log.clientName}
                               </label>
                           </div>
                           <span className="text-xs font-black text-zinc-100">₹{formatNumber(log.gameTotal)}</span>
                       </div>
                   )) : (
-                      <div className="text-center py-10 text-zinc-600 border border-dashed border-zinc-800 rounded-none">
-                          <p className="text-[10px] font-bold uppercase tracking-widest">No entries found</p>
+                      <div className="text-center py-10 text-zinc-600 border border-dashed border-zinc-800">
+                          <p className="text-[10px] font-bold uppercase tracking-widest">No entries for this date</p>
                       </div>
                   )}
               </div>
@@ -395,7 +368,7 @@ const MasterSheetViewer = ({
         </ScrollArea>
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-950">
-          <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-none transition-all active:scale-95">
+          <Button onClick={handleGenerateSheet} className="w-full h-12 bg-zinc-100 hover:bg-white text-zinc-950 font-bold uppercase tracking-widest rounded-none">
             <Download className="mr-2 h-4 w-4" /> Generate Report
           </Button>
         </div>
@@ -403,16 +376,13 @@ const MasterSheetViewer = ({
 
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col rounded-none">
-          <DialogHeader>
-            <DialogTitle>Generated Report</DialogTitle>
-            <DialogDescription>{draw} | {format(date, 'PPPP')}</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Master Report</DialogTitle></DialogHeader>
           <div className="flex-1 my-4 min-h-0">
-            <Textarea readOnly value={generatedSheetContent} className="h-full bg-zinc-900 font-mono text-sm leading-relaxed p-4 rounded-none border-zinc-800 resize-none" />
+            <Textarea readOnly value={generatedSheetContent} className="h-full bg-zinc-900 font-mono text-sm p-4 rounded-none border-zinc-800 resize-none" />
           </div>
           <DialogFooter className="sm:justify-between gap-4">
             <DialogClose asChild><Button variant="outline" className="rounded-none">Close</Button></DialogClose>
-            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)} className="flex-1 rounded-none">Copy to Clipboard</Button>
+            <Button onClick={() => { navigator.clipboard.writeText(generatedSheetContent); toast({title: "Copied!"}) }} className="flex-1 rounded-none">Copy Report</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -431,9 +401,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const isMobile = useIsMobile();
   const [currentRawInput, setCurrentRawInput] = useState<string>("");
 
-  const [validations, setValidations] = useState<CellValidation>({})
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
-  const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
+  const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData } | null>(null);
 
   const currentData = selectedClientId ? clientSheetData[selectedClientId]?.data || {} : {};
 
@@ -473,16 +442,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const saveDataForUndo = () => {
     if (!selectedClientId) return;
     const dataToSave = clientSheetData[selectedClientId];
-    setPreviousSheetState({ data: { ...(dataToSave?.data || {}) }, rowTotals: { ...(dataToSave?.rowTotals || {}) } });
+    setPreviousSheetState({ data: { ...(dataToSave?.data || {}) } });
   };
   
   const handleRevertLastEntry = () => {
     if (previousSheetState && selectedClientId) {
       updateClientData(selectedClientId, previousSheetState.data);
-      toast({ title: "Last Entry Reverted", description: "The last change has been undone." });
+      toast({ title: "Entry Reverted" });
       setPreviousSheetState(null);
-    } else {
-      toast({ title: "No Entry to Revert", description: "There is no previous action to revert.", variant: "destructive" });
     }
   };
   
@@ -510,33 +477,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         setUpdatedCells(updatedKeys);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${updatedKeys.length} cell(s) updated.` });
+        toast({ title: "Grid Updated" });
     }
   };
 
   useImperativeHandle(ref, () => ({
-    handleClientUpdate: (client: Client) => {
-      if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
-      }
-      if (client.pair === '90') {
-        saveDataForUndo();
-        const cellNum = parseInt(client.name, 10);
-        const commission = parseFloat(client.comm);
-
-        if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99 && !isNaN(commission)) {
-          const key = (cellNum).toString().padStart(2, '0');
-          const newData = { ...currentData };
-          const currentValue = parseFloat(newData[key]) || 0;
-          newData[key] = String(currentValue * commission);
-          if(selectedClientId) updateClientData(selectedClientId, newData);
-          setUpdatedCells(prev => [...prev, key]);
-          setTimeout(() => setUpdatedCells(prev => prev.filter(c => c !== key)), 2000);
-          toast({ title: "Sheet Updated", description: `Cell ${client.name} adjusted.` });
-        }
-      }
-    },
+    handleClientUpdate: () => {},
     clearSheet: () => handleClearSheet(),
     getClientData: (clientId: string) => clientSheetData[clientId]?.data,
     getClientCurrentData: (clientId: string) => clientSheetData[clientId]?.data,
@@ -557,25 +503,15 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (selectedClientId) updateClientData(selectedClientId, newData);
   }
 
-  const handleCellBlur = async (key: string) => {
-    return;
-  }
-
   const checkBalance = (entryTotal: number): boolean => {
     if (!selectedClientId) return true;
     const client = props.clients.find(c => c.id === selectedClientId);
     if (!client || !client.activeBalance) return true;
-    const activeBalance = client.activeBalance;
     const logsForDraw = props.savedSheetLog[props.draw] || [];
     const logEntry = logsForDraw.find(log => log.clientId === selectedClientId);
     const totalPlayed = logEntry?.gameTotal || 0;
-    const remainingBalance = activeBalance - totalPlayed;
-    if (entryTotal > remainingBalance) {
-      toast({
-        title: "Balance Limit Exceeded",
-        description: `This entry exceeds the remaining balance.`,
-        variant: "destructive",
-      });
+    if (entryTotal > (client.activeBalance - totalPlayed)) {
+      toast({ title: "Limit Exceeded", variant: "destructive" });
       return false;
     }
     return true;
@@ -588,11 +524,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
     saveDataForUndo();
     updateClientData(selectedClientId, {});
-    setValidations({});
     setUpdatedCells([]);
     props.setLastEntry('');
     setCurrentRawInput("");
-    toast({ title: "Sheet Cleared" });
+    toast({ title: "Grid Cleared" });
   };
   
   const handleSaveSheet = () => {
@@ -601,14 +536,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       return;
     }
     const newEntries = { ...(clientSheetData[selectedClientId]?.data || {}) };
-    if (Object.keys(newEntries).length === 0) {
-      toast({
-        title: "No Data",
-        description: "Please enter data before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (Object.keys(newEntries).length === 0) return;
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown";
     props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date, currentRawInput);
     updateClientData(selectedClientId, {});
@@ -625,23 +553,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setLogToDelete(null);
   };
 
-  const openViewEntryDialog = () => {
-    if (!selectedClientId) {
-      showClientSelectionToast();
-      return;
-    }
-    setIsViewEntryDialogOpen(true);
-  };
-
   const clientEntries = useMemo(() => {
     if (!selectedClientId || !props.savedSheetLog[props.draw]) return [];
     const dateStrToMatch = format(props.date, 'yyyy-MM-dd');
     return props.savedSheetLog[props.draw]
       .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
-      .sort((a, b) => {
-        if (a.createdAt && b.createdAt) return b.createdAt.localeCompare(a.createdAt);
-        return b.id.localeCompare(a.id);
-      });
+      .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
 
   const getClientDisplay = (client: Client) => {
@@ -654,20 +571,27 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden rounded-none border-0 bg-transparent">
+        <div className="flex items-center px-2 py-1 bg-muted/30 border-b gap-4">
+            <Button variant="ghost" size="icon" onClick={props.onBack} className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
+            <div className="flex-1 flex items-center gap-2">
+                <Badge className="bg-primary text-primary-foreground font-black text-xs uppercase rounded-none">{props.draw}</Badge>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground">{format(props.date, "dd MMM yyyy")}</span>
+            </div>
+        </div>
         <CardContent className="p-0.5 md:p-1 flex-grow flex flex-col min-h-0">
           {isMobile ? (
             <Tabs defaultValue="grid" className="w-full h-full flex flex-col min-h-0">
               <TabsList className="grid w-full grid-cols-2 rounded-none bg-zinc-900 border-b border-zinc-800 shrink-0">
-                <TabsTrigger value="grid" className="gap-1.5 rounded-none data-[state=active]:bg-zinc-800"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
-                <TabsTrigger value="entry" className="gap-1.5 rounded-none data-[state=active]:bg-zinc-800"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
+                <TabsTrigger value="grid" className="gap-1.5 rounded-none"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
+                <TabsTrigger value="entry" className="gap-1.5 rounded-none"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
               </TabsList>
               <TabsContent value="grid" className="flex-grow min-h-0 mt-0 overflow-hidden flex flex-col">
                 <GridView
                   currentData={currentData}
                   updatedCells={updatedCells}
-                  validations={validations}
+                  validations={{}}
                   handleCellChange={handleCellChange}
-                  handleCellBlur={handleCellBlur}
+                  handleCellBlur={() => {}}
                   isDataEntryDisabled={!selectedClientId}
                   showClientSelectionToast={showClientSelectionToast}
                 />
@@ -690,7 +614,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
                     currentGridData={currentData}
                     draw={props.draw}
-                    openViewEntryDialog={openViewEntryDialog}
+                    openViewEntryDialog={() => setIsViewEntryDialogOpen(true)}
                  />
               </TabsContent>
             </Tabs>
@@ -699,9 +623,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
               <GridView
                 currentData={currentData}
                 updatedCells={updatedCells}
-                validations={validations}
+                validations={{}}
                 handleCellChange={handleCellChange}
-                handleCellBlur={handleCellBlur}
+                handleCellBlur={() => {}}
                 isDataEntryDisabled={!selectedClientId}
                 showClientSelectionToast={showClientSelectionToast}
               />
@@ -723,7 +647,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                   openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
                   currentGridData={currentData}
                   draw={props.draw}
-                  openViewEntryDialog={openViewEntryDialog}
+                  openViewEntryDialog={() => setIsViewEntryDialogOpen(true)}
                />
             </div>
           )}
@@ -734,17 +658,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         <DialogContent className="w-full h-full p-0 border-0 sm:max-w-none overflow-hidden flex flex-col rounded-none">
           <DialogHeader className="flex flex-row items-center justify-between px-6 py-3 border-b border-zinc-800 shrink-0 bg-zinc-950">
             <div className="flex items-center gap-6">
-                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-zinc-800 rounded-none text-zinc-100">
-                    <ArrowLeft className="h-6 w-6" />
-                    <span className="sr-only">Back</span>
-                </Button>
-                <div>
-                    <DialogTitle className="text-xl font-bold text-zinc-100">Master Sheet : {props.draw}</DialogTitle>
-                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-10 w-10 hover:bg-zinc-800 text-zinc-100"><ArrowLeft className="h-6 w-6" /></Button>
+                <div><DialogTitle className="text-xl font-bold text-zinc-100">Master Sheet : {props.draw}</DialogTitle></div>
             </div>
-             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-8 w-8 hover:bg-zinc-800 rounded-none text-zinc-400">
-                <X className="h-5 w-5" />
-            </Button>
+             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="h-8 w-8 hover:bg-zinc-800 text-zinc-400"><X className="h-5 w-5" /></Button>
           </DialogHeader>
            <div className="flex-1 overflow-hidden bg-zinc-950">
                 <MasterSheetViewer 
@@ -762,9 +679,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         <DialogContent className="rounded-none">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the entry for <strong>{logToDelete?.name}</strong>? This action cannot be undone.
-            </DialogDescription>
+            <DialogDescription>Permanently delete entry for <strong>{logToDelete?.name}</strong>?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLogToDelete(null)} className="rounded-none">Cancel</Button>
@@ -773,36 +688,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
-        <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader>
-            <DialogTitle>Last Processed Entry</DialogTitle>
-          </DialogHeader>
-          <div className="my-4">
-            <Textarea
-              readOnly
-              value={props.lastEntry || "No entries yet."}
-              rows={Math.min(15, (props.lastEntry || "").split('\n').length)}
-              className="bg-muted font-mono rounded-none"
-            />
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild><Button variant="secondary" className="rounded-none">Close</Button></DialogClose>
-             <Button onClick={() => navigator.clipboard.writeText(props.lastEntry)} className="rounded-none">
-                <Copy className="mr-2 h-4 w-4" /> Copy
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
         <DialogContent className="max-w-xl rounded-none">
-            <DialogHeader>
-                <DialogTitle className="uppercase font-black">Client History</DialogTitle>
-                <DialogDescription>
-                    {props.clients.find(c => c.id === selectedClientId)?.name} | {props.draw}
-                </DialogDescription>
-            </DialogHeader>
+            <DialogHeader><DialogTitle className="uppercase font-black">History: {props.draw}</DialogTitle></DialogHeader>
             <div className="my-4">
                 <ScrollArea className="max-h-[60vh]">
                     <div className="space-y-2 pr-4">
@@ -811,29 +699,20 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                                 <Card key={entry.id} className="p-3 border-l-4 border-l-primary rounded-none">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="font-bold">
-                                                Entry {clientEntries.length - index}: 
-                                                <span className="font-black text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
-                                            </p>
-                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                                                {entry.rawInput || "Manual Grid Update"}
-                                            </p>
+                                            <p className="font-bold">Entry {index + 1}: <span className="font-black text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span></p>
+                                            <p className="text-[10px] text-muted-foreground whitespace-pre-wrap mt-1">{entry.rawInput || "Manual Entry"}</p>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-none" onClick={() => props.onDeleteLogEntry(entry.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { props.onDeleteLogEntry(entry.id); setIsViewEntryDialogOpen(false); }}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                 </Card>
                             ))
                         ) : (
-                            <p className="text-center text-muted-foreground py-8 italic font-bold">No entries found for today.</p>
+                            <p className="text-center text-muted-foreground py-8 italic font-bold">No entries found.</p>
                         )}
                     </div>
                 </ScrollArea>
             </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsViewEntryDialogOpen(false)} className="rounded-none">Close</Button>
-            </DialogFooter>
+            <DialogFooter><Button variant="outline" onClick={() => setIsViewEntryDialogOpen(false)} className="rounded-none">Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>
@@ -841,5 +720,4 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 });
 
 GridSheet.displayName = 'GridSheet';
-
 export default GridSheet;

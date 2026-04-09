@@ -1,7 +1,6 @@
-
 'use client';
 import { useMemo } from 'react';
-import { collection, doc, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -37,7 +36,7 @@ export const useClients = (userId?: string) => {
   const clients = useMemo(() => data || [], [data]);
 
   const addClient = (client: Omit<Client, 'id'>) => {
-    if (!clientsColRef) return;
+    if (!clientsColRef || !userId) return;
     addDocumentNonBlocking(clientsColRef, client);
     toast({ title: "Client Added", description: `${client.name} has been added.` });
   };
@@ -52,7 +51,6 @@ export const useClients = (userId?: string) => {
 
   const deleteClient = (id: string, name: string) => {
     if (!userId) return;
-    // First, delete associated logs, then delete the client
     deleteSheetLogsForClient(id, false).then(() => {
       const clientRef = doc(firestore, `users/${userId}/clients`, id);
       deleteDocumentNonBlocking(clientRef);
@@ -61,6 +59,7 @@ export const useClients = (userId?: string) => {
   };
   
   const clearClientData = (id: string, name: string) => {
+    if (!userId) return;
     deleteSheetLogsForClient(id, true);
     toast({ title: "Client Data Cleared", description: `All sheet data for ${name} has been cleared.` });
   }

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react"
@@ -9,12 +8,12 @@ import AccountsManager, { Account, DrawData } from "@/components/accounts-manage
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
 import { AuthScreen } from "@/components/auth-screen"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon, LogOut, Loader2 } from 'lucide-react';
+import { Users, Building, Calendar as CalendarIcon, FileSpreadsheet, Shield, PlusCircle, Trash2, Megaphone, ArrowUpRight, Sun, Moon, LogOut, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, isSameDay, startOfDay, subDays, compareAsc } from "date-fns"
+import { format, isSameDay, startOfDay, compareAsc } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -79,7 +78,7 @@ export default function Home() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Initializing System...</p>
+        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Checking Security Status...</p>
       </div>
     );
   }
@@ -109,7 +108,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(userId);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(userId);
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(userId);
+  const { setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, declaredNumbers } = useDeclaredNumbers(userId);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
@@ -151,7 +150,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       if (!uniqueSheetKeys.has(key)) {
         uniqueSheetKeys.add(key);
         const dateParts = log.date.split('-').map(Number);
-        // Using UTC to match storage format
         const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
         allSheets.push({ draw: log.draw, date: logDate });
       }
@@ -265,7 +263,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
         const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
         
-        // Check if sheet already exists in combined list
         const sheetExists = activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
         if (!sheetExists) {
             setManualSheets(prev => [newSheet, ...prev]);
@@ -373,6 +370,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                 accounts={accounts}
                 draws={draws}
                 onDeleteLogEntry={deleteSheetLogEntry}
+                onBack={() => { setSelectedDraw(null); setSelectedDate(undefined); }}
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">

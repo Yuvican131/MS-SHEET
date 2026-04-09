@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
@@ -8,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/firebase"
 import { initiatePhoneSignIn } from "@/firebase/non-blocking-login"
-import { ShieldCheck, Phone, MessageSquare, ArrowRight, Loader2, RotateCcw } from "lucide-react"
+import { ShieldCheck, Phone, MessageSquare, ArrowRight, Loader2, RotateCw, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { RecaptchaVerifier, ConfirmationResult } from "firebase/auth"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function AuthScreen() {
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -18,6 +18,7 @@ export function AuthScreen() {
   const [step, setStep] = useState<"phone" | "otp">("phone")
   const [isLoading, setIsLoading] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  const [configError, setConfigError] = useState<string | null>(null)
   
   const auth = useAuth()
   const { toast } = useToast()
@@ -26,12 +27,14 @@ export function AuthScreen() {
 
   useEffect(() => {
     if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-        size: "invisible",
-        callback: () => {
-          // reCAPTCHA solved
-        }
-      })
+      try {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+          size: "invisible",
+          callback: () => {}
+        })
+      } catch (err) {
+        console.error("Recaptcha init error:", err)
+      }
     }
   }, [auth])
 
@@ -40,15 +43,16 @@ export function AuthScreen() {
     if (!phoneNumber || phoneNumber.length < 10) {
       toast({
         title: "Invalid Number",
-        description: "Please enter a valid phone number with country code (e.g., +919876543210).",
+        description: "Please enter a valid phone number with country code.",
         variant: "destructive",
       })
       return
     }
 
     setIsLoading(true)
+    setConfigError(null)
     try {
-      if (!recaptchaVerifierRef.current) throw new Error("Recaptcha not initialized")
+      if (!recaptchaVerifierRef.current) throw new Error("Security verification not ready. Please refresh.")
       
       const result = await initiatePhoneSignIn(auth, phoneNumber, recaptchaVerifierRef.current)
       setConfirmationResult(result)
@@ -59,11 +63,16 @@ export function AuthScreen() {
       })
     } catch (error: any) {
       console.error("Phone Auth Error:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send OTP. Ensure the number is correct.",
-        variant: "destructive",
-      })
+      const msg = error.message || ""
+      if (msg.includes("auth/operation-not-allowed")) {
+        setConfigError("Phone Authentication is not enabled in your Firebase Project. Please go to the Firebase Console -> Build -> Authentication -> Sign-in method and enable 'Phone'.")
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send OTP.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -84,7 +93,6 @@ export function AuthScreen() {
     try {
       if (!confirmationResult) throw new Error("No pending verification found.")
       await confirmationResult.confirm(otpCode)
-      // On success, the onAuthStateChanged listener in FirebaseProvider will pick it up
     } catch (error: any) {
       console.error("OTP Verification Error:", error)
       toast({
@@ -101,6 +109,7 @@ export function AuthScreen() {
     setStep("phone")
     setOtpCode("")
     setConfirmationResult(null)
+    setConfigError(null)
   }
 
   return (
@@ -118,11 +127,21 @@ export function AuthScreen() {
             GridSheet Access
           </CardTitle>
           <CardDescription className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">
-            {step === "phone" ? "Enter Mobile Number" : "Verify OTP Code"}
+            {step === "phone" ? "Secure Mobile Access" : "Verify OTP Code"}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {configError && (
+            <Alert variant="destructive" className="rounded-none bg-red-900/20 border-red-900/50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Setup Required</AlertTitle>
+              <AlertDescription className="text-xs">
+                {configError}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {step === "phone" ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-1.5">
@@ -140,7 +159,7 @@ export function AuthScreen() {
                   />
                 </div>
               </div>
-              <Button type="submit" disabled={isLoading} className="w-full h-12 font-black uppercase tracking-widest rounded-none">
+              <Button type="submit" disabled={isLoading || !!configError} className="w-full h-12 font-black uppercase tracking-widest rounded-none">
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send OTP <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
             </form>
@@ -153,7 +172,7 @@ export function AuthScreen() {
                   <Input
                     id="otp"
                     type="text"
-                    placeholder="Enter 6-digit code"
+                    placeholder="6-digit code"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                     className="bg-zinc-950 border-zinc-800 rounded-none h-12 pl-10 font-bold tracking-[0.5em] text-center focus-visible:ring-primary"
@@ -178,16 +197,10 @@ export function AuthScreen() {
 
         <CardFooter className="flex flex-col text-center">
           <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-            {step === "phone" ? "Standard carrier rates may apply for SMS" : `Verifying ${phoneNumber}`}
+            {step === "phone" ? "Only authorized numbers can access" : `Verifying ${phoneNumber}`}
           </p>
         </CardFooter>
       </Card>
-      
-      <div className="fixed bottom-4 text-center w-full">
-        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
-          Protected by AES-256 Encryption & Firebase Phone Auth
-        </p>
-      </div>
     </div>
   )
 }

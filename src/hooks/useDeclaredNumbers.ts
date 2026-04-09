@@ -6,10 +6,10 @@ import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/no
 import { format } from 'date-fns';
 
 export interface DeclaredNumber {
-  id: string; // composite key draw-date
+  id: string; 
   number: string;
   draw: string;
-  date: string; // ISO date string
+  date: string; 
   _deleted?: boolean;
 }
 
@@ -32,7 +32,6 @@ export const useDeclaredNumbers = (userId?: string) => {
 
     const merged = { ...fromDb, ...localDeclaredNumbers };
 
-    // Filter out any entries that have been explicitly set to null or marked as deleted
     Object.keys(merged).forEach(key => {
       if (merged[key] === null || merged[key]?._deleted) {
         delete merged[key];
@@ -41,17 +40,6 @@ export const useDeclaredNumbers = (userId?: string) => {
 
     return merged as { [key: string]: DeclaredNumber };
   }, [data, localDeclaredNumbers]);
-
-
-  const setDeclaredNumberLocal = useCallback((draw: string, number: string, date: Date) => {
-    if (!date) return;
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const docId = `${draw}-${dateStr}`;
-    setLocalDeclaredNumbers(prev => ({
-        ...prev,
-        [docId]: { id: docId, draw, number, date: dateStr }
-    }));
-  }, []);
 
   const getDeclaredNumber = useCallback((draw: string, date: Date | undefined): string | undefined => {
     if (!date) return undefined;
@@ -67,16 +55,12 @@ export const useDeclaredNumbers = (userId?: string) => {
     const docId = `${draw}-${dateStr}`;
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     
-    // First, apply it optimistically to local state
     setLocalDeclaredNumbers(prev => ({
         ...prev,
-        [docId]: { id: docId, draw, number, date: dateStr, _deleted: false } // ensure _deleted is false
+        [docId]: { id: docId, draw, number, date: dateStr, _deleted: false }
     }));
     
-    // Then, send it to the database
     setDocumentNonBlocking(docRef, { number, draw, date: dateStr }, { merge: true });
-    
-    // No need for timeout removal as the DB state will eventually sync
   };
   
   const removeDeclaredNumber = (draw: string, date: Date) => {
@@ -84,12 +68,11 @@ export const useDeclaredNumbers = (userId?: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
 
-    // Optimistically update local state to reflect deletion by setting it to a deleted state.
     setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: { ...prev[docId], _deleted: true } as DeclaredNumber | null }));
 
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     deleteDocumentNonBlocking(docRef);
   };
 
-  return { declaredNumbers, isLoading, error, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal };
+  return { declaredNumbers, isLoading, error, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber };
 };

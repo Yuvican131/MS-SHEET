@@ -2,8 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * @description Secure rules: Users can only access their own data.
-     * The {userId} in the path must match the authenticated user's UID.
+     * @description Secure rules: Users can only access their own data silo.
+     * Access is restricted to the authenticated user whose UID matches the document path.
      */
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -14,8 +14,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allow the automation API to find clients by phone number.
-     * This is a specific read-only exception for the clients collection.
+     * @description Public lookup for automation (e.g. WhatsApp bots).
+     * This allows the API to find a client across all user accounts by phone number.
      */
     match /users/{userId}/clients/{clientId} {
       allow read: if true; 
