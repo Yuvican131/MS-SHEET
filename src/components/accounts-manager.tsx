@@ -33,7 +33,6 @@ export type Account = {
 type AccountsManagerProps = {
   accounts: Account[];
   clients: Client[];
-  setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
   selectedDate: Date | undefined;
   onDateChange: (date: Date | undefined) => void;
   getDeclaredNumber: (draw: string, date: Date | undefined) => string | undefined;
@@ -167,7 +166,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
 
     if (!onClientTransaction || !selectedAccountId) return;
 
-    // Jama = Client pays me (+), Lena = I pay client (-)
     const settlementChange = jama - lena;
     onClientTransaction(selectedAccountId, settlementChange);
     
@@ -181,7 +179,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
     <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
       <CardContent className="flex-1 p-0 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
         
-        {/* Left Column: Client List */}
         <div className="w-full lg:w-96 flex flex-col gap-4 flex-shrink-0">
           <Card className="flex flex-col h-full overflow-hidden border shadow-sm">
             <CardHeader className="p-4 space-y-4 border-b bg-muted/20">
@@ -192,7 +189,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                 </CardTitle>
               </div>
 
-              {/* Date Selector Header */}
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handlePrevDay}>
                   <ChevronLeft className="h-4 w-4" />
@@ -276,7 +272,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
           </Card>
         </div>
 
-        {/* Right Column: Details View */}
         <div className="flex-1 min-w-0">
           {selectedAccount ? (
             <Card className="h-full flex flex-col overflow-hidden border shadow-md">
@@ -305,7 +300,6 @@ export default function AccountsManager({ accounts, clients, selectedDate, onDat
                         </div>
                       </div>
                       
-                      {/* Record Settlement Button */}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button size="sm" className="w-full font-black uppercase tracking-widest text-[10px] h-10">

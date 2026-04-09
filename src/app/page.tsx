@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react"
@@ -65,9 +66,6 @@ type ActiveSheet = {
     date: Date;
 };
 
-// Use a fixed global ID for the data but require login to reach this component
-const GLOBAL_ADMIN_ID = "global-admin";
-
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -86,12 +84,11 @@ export default function Home() {
     );
   }
 
-  // If no user is authenticated, show the passcode screen
   if (!user) {
     return <AuthScreen />;
   }
 
-  return <AuthenticatedApp userId={GLOBAL_ADMIN_ID} onLogout={() => signOut(auth)} />;
+  return <AuthenticatedApp userId={user.uid} onLogout={() => signOut(auth)} />;
 }
 
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
@@ -113,8 +110,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(userId);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(userId);
   const { setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, declaredNumbers } = useDeclaredNumbers(userId);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [formSelectedDate, setFormSelectedDate] = useState<Date | undefined>(undefined);
@@ -177,11 +172,11 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   }, [savedSheetLog, manualSheets]);
 
 
-  const updateAccountsFromLog = useCallback(() => {
+  const accounts = useMemo(() => {
     const dateForCalc = selectedDate || new Date();
     const allLogs = Object.values(savedSheetLog).flat();
   
-    const newAccounts = clients.map(client => {
+    return clients.map(client => {
       const clientCommissionPercent = parseFloat(client.comm) / 100;
       const passingMultiplier = parseFloat(client.pair) || 80;
   
@@ -251,14 +246,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         draws: updatedDrawsForSelectedDay,
       };
     });
-  
-    setAccounts(newAccounts);
   }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
-
-
-  useEffect(() => {
-    updateAccountsFromLog();
-  }, [updateAccountsFromLog]);
 
   const handleAddSheet = () => {
     if(formSelectedDraw && formSelectedDate) {
@@ -467,7 +455,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             <AccountsManager 
               accounts={accounts} 
               clients={clients} 
-              setAccounts={setAccounts} 
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               getDeclaredNumber={getDeclaredNumber}

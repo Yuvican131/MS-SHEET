@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { collection, doc } from 'firebase/firestore';
@@ -21,17 +22,14 @@ export type Client = {
   securityMoney: number;
 };
 
-// Fixed ID for single-tenant app silo
-const SILO_ID = "global-admin";
-
 export const useClients = (userId?: string) => {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { deleteSheetLogsForClient } = useSheetLog(SILO_ID);
+  const { deleteSheetLogsForClient } = useSheetLog(userId);
 
   const clientsColRef = useMemoFirebase(() => {
     if (!userId) return null;
-    return collection(firestore, `users/${SILO_ID}/clients`);
+    return collection(firestore, `users/${userId}/clients`);
   }, [firestore, userId]);
 
   const { data, isLoading, error } = useCollection<Omit<Client, 'id'>>(clientsColRef);
@@ -45,15 +43,17 @@ export const useClients = (userId?: string) => {
   };
 
   const updateClient = (client: Client) => {
-    const clientRef = doc(firestore, `users/${SILO_ID}/clients`, client.id);
+    if (!userId) return;
+    const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
     const { id, ...clientData } = client;
     updateDocumentNonBlocking(clientRef, clientData);
     toast({ title: "Client Updated", description: `${client.name}'s details have been updated.` });
   };
 
   const deleteClient = (id: string, name: string) => {
+    if (!userId) return;
     deleteSheetLogsForClient(id, false).then(() => {
-      const clientRef = doc(firestore, `users/${SILO_ID}/clients`, id);
+      const clientRef = doc(firestore, `users/${userId}/clients`, id);
       deleteDocumentNonBlocking(clientRef);
       toast({ title: "Client Deleted", description: `${name} and all their data have been deleted.` });
     });
