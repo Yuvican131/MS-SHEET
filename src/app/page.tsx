@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -8,9 +7,10 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon, LogOut } from 'lucide-react';
+import { AuthScreen } from "@/components/auth-screen"
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon, LogOut, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format, isSameDay, startOfDay, subDays, compareAsc } from "date-fns"
@@ -30,10 +30,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
+import { useUser, useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 import type { Settlement } from "@/components/admin-panel";
-
-// Using a fixed ID for the application since authentication is removed
-const APP_USER_ID = "global-admin";
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -66,9 +65,32 @@ type ActiveSheet = {
     date: Date;
 };
 
-
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Initializing System...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  return <AuthenticatedApp userId={user.uid} onLogout={() => signOut(auth)} />;
+}
+
+function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -84,9 +106,9 @@ export default function Home() {
   const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
 
-  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(APP_USER_ID);
-  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(APP_USER_ID);
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(APP_USER_ID);
+  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(userId);
+  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(userId);
+  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(userId);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
@@ -97,34 +119,31 @@ export default function Home() {
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
 
   useEffect(() => {
-    setMounted(true);
     const now = new Date();
     setSelectedDate(now);
     setFormSelectedDate(now);
 
     try {
-      const savedSettlements = localStorage.getItem('brokerSettlements');
+      const savedSettlements = localStorage.getItem(`settlements-${userId}`);
       if (savedSettlements) {
         const parsedSettlements = JSON.parse(savedSettlements);
-        const firstKey = Object.keys(parsedSettlements)[0];
-        if (firstKey && Array.isArray(parsedSettlements[firstKey])) {
-           setSettlements(parsedSettlements);
-        }
+        setSettlements(parsedSettlements);
       }
     } catch (error) {
       console.error("Failed to parse settlements from localStorage", error);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
-  }, [settlements]);
+    if (userId) {
+      localStorage.setItem(`settlements-${userId}`, JSON.stringify(settlements));
+    }
+  }, [settlements, userId]);
   
   useEffect(() => {
     const uniqueSheetKeys = new Set<string>();
     const sheetsFromLogs: ActiveSheet[] = [];
 
-    // Add sheets from saved logs first
     Object.values(savedSheetLog).flat().forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
@@ -135,7 +154,6 @@ export default function Home() {
       }
     });
 
-    // Combine with manually added sheets, ensuring no duplicates
     const allSheets = [...sheetsFromLogs];
     activeSheets.forEach(manualSheet => {
         const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
@@ -148,14 +166,12 @@ export default function Home() {
     const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
     allSheets.sort((a, b) => {
         const dateComparison = b.date.getTime() - a.date.getTime();
-        if (dateComparison !== 0) {
-            return dateComparison;
-        }
+        if (dateComparison !== 0) return dateComparison;
         return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
     });
 
     setActiveSheets(allSheets);
-  }, [savedSheetLog]);
+  }, [savedSheetLog, activeSheets]);
 
 
   const updateAccountsFromLog = useCallback(() => {
@@ -171,9 +187,7 @@ export default function Home() {
         .filter(log => log.clientId === client.id)
         .forEach(log => {
           const dateStr = log.date;
-          if (!logsByDate[dateStr]) {
-            logsByDate[dateStr] = [];
-          }
+          if (!logsByDate[dateStr]) logsByDate[dateStr] = [];
           logsByDate[dateStr].push(log);
         });
   
@@ -184,30 +198,24 @@ export default function Home() {
   
       for (const dateStr of sortedDates) {
         const logDate = startOfDay(new Date(dateStr));
-        
         if (logDate < selectedDayStart) {
           const logsForDay = logsByDate[dateStr];
           let dailyNetResult = 0;
-  
           for (const log of logsForDay) {
             const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
             const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
-            
             const gameTotal = log.gameTotal;
             const commission = gameTotal * clientCommissionPercent;
-            const netFromGames = gameTotal - commission;
             const winnings = passingAmountInLog * passingMultiplier;
-            dailyNetResult += (netFromGames - winnings);
+            dailyNetResult += (gameTotal - commission - winnings);
           }
           runningBalance += dailyNetResult;
         }
       }
   
       const openingBalanceForSelectedDay = runningBalance;
-      
       const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
       const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
-  
       let netResultForSelectedDay = 0;
       
       draws.forEach(drawName => {
@@ -218,18 +226,15 @@ export default function Home() {
         clientLogsForSelectedDay.forEach(log => {
           const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
           const passingAmountInLog = declaredNumberForSelectedDay ? parseFloat(log.data[declaredNumberForSelectedDay] || "0") : 0;
-
           totalAmountForDraw += log.gameTotal;
           passingAmountForDraw += passingAmountInLog;
         });
 
         if (totalAmountForDraw > 0) {
             const commissionOnDay = totalAmountForDraw * clientCommissionPercent;
-            const netFromGamesOnDay = totalAmountForDraw - commissionOnDay;
             const winningsOnDay = passingAmountForDraw * passingMultiplier;
-            netResultForSelectedDay += (netFromGamesOnDay - winningsOnDay);
+            netResultForSelectedDay += (totalAmountForDraw - commissionOnDay - winningsOnDay);
         }
-
         updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passingAmount: passingAmountForDraw };
       });
       
@@ -252,28 +257,13 @@ export default function Home() {
     updateAccountsFromLog();
   }, [updateAccountsFromLog]);
 
-
-  const handleClientUpdateForSheet = (client: Client) => {
-    if (gridSheetRef.current) {
-      gridSheetRef.current.handleClientUpdate(client);
-    }
-  };
-  
   const handleAddSheet = () => {
     if(formSelectedDraw && formSelectedDate) {
-        // Create date in UTC to match how log dates are handled
         const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
         const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
-
         const sheetExists = activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
-
         if (!sheetExists) {
-            setActiveSheets(prev => [newSheet, ...prev].sort((a, b) => {
-                 const dateComparison = b.date.getTime() - a.date.getTime();
-                if (dateComparison !== 0) return dateComparison;
-                const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
-                return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
-            }));
+            setActiveSheets(prev => [newSheet, ...prev]);
         }
     }
   };
@@ -283,25 +273,12 @@ export default function Home() {
     setSelectedDate(sheet.date);
   };
   
-  const handleBackToDraws = () => {
-    setSelectedDraw(null);
-  };
-  
   const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date, rawInput?: string) => {
     const todayStr = date.toISOString().split('T')[0];
-  
     const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    if (newEntryTotal === 0) return;
   
-    if (newEntryTotal === 0) {
-      toast({
-        title: "No Data to Save",
-        description: "The sheet is empty.",
-        variant: "destructive"
-      });
-      return;
-    }
-  
-    const newEntry: Omit<SavedSheetInfo, 'id'> = {
+    addSheetLogEntry({
       clientName,
       clientId,
       gameTotal: newEntryTotal,
@@ -310,43 +287,21 @@ export default function Home() {
       draw,
       rawInput: rawInput || "Manual Grid Update",
       createdAt: new Date().toISOString(),
-    };
-  
-    addSheetLogEntry(newEntry);
-  
-    toast({
-      title: "Sheet Saved",
-      description: `${clientName}'s data has been logged.`,
     });
+  
+    toast({ title: "Sheet Saved", description: `${clientName}'s data logged.` });
   };
   
   const handleDeclareOrUndeclare = () => {
     const dateToUse = selectedDate || new Date();
     if (declarationNumber.length === 2) {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
-      toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
+      toast({ title: "Success", description: `Result declared.` });
     }
-    setIsDeclarationDialogOpen(false);
-    setDeclarationNumber("");
-  };
-  
-  const handleUndeclare = () => {
-    const dateToUse = selectedDate || new Date();
-    removeDeclaredNumber(declarationDraw, dateToUse);
-    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setIsDeclarationDialogOpen(false);
     setDeclarationNumber("");
   };
 
-  const handleDeleteDrawSheets = () => {
-    if (drawToDelete) {
-        deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
-        removeDeclaredNumber(drawToDelete.draw, drawToDelete.date);
-        setActiveSheets(prev => prev.filter(s => !(s.draw === drawToDelete.draw && isSameDay(s.date, drawToDelete.date))));
-    }
-    setDrawToDelete(null);
-  };
-  
   const TabListContent = () => (
     <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
       <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
@@ -359,25 +314,18 @@ export default function Home() {
       </TabsTrigger>
       <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <Building className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">ACCOUNT LEDGER</span>
+        <span className="hidden md:inline">LEDGER</span>
       </TabsTrigger>
       <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">Client Performance</span>
+        <span className="hidden md:inline">STATS</span>
       </TabsTrigger>
       <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <Shield className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">Admin Panel</span>
+        <span className="hidden md:inline">ADMIN</span>
       </TabsTrigger>
     </TabsList>
   );
-
-  const isSheetAlreadyAdded = formSelectedDraw && formSelectedDate ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;
-
-  // Hydration safety: Return empty shell or placeholder until mounted
-  if (!mounted) {
-    return <div className="flex h-screen w-full items-center justify-center bg-background" />;
-  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
@@ -393,29 +341,15 @@ export default function Home() {
                   <TabListContent />
               )}
             </div>
-               <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <Sun className="h-5 w-5" />
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    id="theme-switch"
-                  />
-                  <Moon className="h-5 w-5" />
+            <div className="flex items-center gap-2">
+                <div className="flex items-center space-x-2 mr-2">
+                  <Sun className="h-4 w-4" />
+                  <Switch checked={theme === 'dark'} onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+                  <Moon className="h-4 w-4" />
                 </div>
-
-               {selectedDraw && activeTab === 'sheet' && (
-                 <div className="flex items-center">
-                    <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to Home
-                    </Button>
-                    <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" size="sm" className="ml-2">
-                        <History className="mr-2 h-4 w-4" />
-                        Last Entry
-                    </Button>
-                </div>
-              )}
+                <Button variant="ghost" size="icon" onClick={onLogout} className="h-9 w-9 text-muted-foreground">
+                    <LogOut className="h-4 w-4" />
+                </Button>
             </div>
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
@@ -445,11 +379,9 @@ export default function Home() {
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                                 <div className="space-y-2">
-                                    <Label htmlFor="form-draw-select">Select a Draw</Label>
+                                    <Label>Select a Draw</Label>
                                     <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
-                                        <SelectTrigger id="form-draw-select">
-                                            <SelectValue placeholder="Select Draw..." />
-                                        </SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select Draw..." /></SelectTrigger>
                                         <SelectContent>
                                             {draws.map(draw => (
                                                 <SelectItem key={draw} value={draw}>{draw}</SelectItem>
@@ -461,83 +393,49 @@ export default function Home() {
                                   <Label>Pick a date</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal",
-                                                    !formSelectedDate && "text-muted-foreground"
-                                                )}
-                                            >
+                                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !formSelectedDate && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={formSelectedDate}
-                                                onSelect={(date) => date && setFormSelectedDate(date)}
-                                                initialFocus
-                                            />
+                                            <Calendar mode="single" selected={formSelectedDate} onSelect={(date) => date && setFormSelectedDate(date)} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <Button onClick={handleAddSheet} className="w-full" disabled={!formSelectedDraw || !formSelectedDate || isSheetAlreadyAdded}>
+                                <Button onClick={handleAddSheet} className="w-full" disabled={!formSelectedDraw || !formSelectedDate}>
                                   <PlusCircle className="mr-2 h-4 w-4" /> Add Sheet
                                 </Button>
                             </div>
-                            {isSheetAlreadyAdded && (
-                              <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
-                            )}
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="w-full max-w-2xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-foreground">Recent Sheets</h2>
-                  </div>
-
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Recent Sheets</h2>
                   <div className="space-y-3">
                     {activeSheets.map((sheet, index) => {
                       const declaredNumber = getDeclaredNumber(sheet.draw, sheet.date);
                       return (
-                      <Card 
-                        key={index} 
-                        className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50"
-                      >
+                      <Card key={index} className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50">
                         <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => handleOpenSheet(sheet)}>
-                           <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-primary text-primary font-bold text-lg">
-                              {sheet.draw}
-                           </div>
+                           <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-primary text-primary font-bold text-lg">{sheet.draw}</div>
                            <div>
-                              <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
-                              <p className="text-sm text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
+                              <p className="font-semibold">Draw: {sheet.draw}</p>
+                              <p className="text-xs text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="flex items-center justify-center cursor-pointer"
-                            onClick={() => { setDeclarationDraw(sheet.draw); setSelectedDate(sheet.date); setIsDeclarationDialogOpen(true); }}
-                          >
+                          <div className="cursor-pointer" onClick={() => { setDeclarationDraw(sheet.draw); setSelectedDate(sheet.date); setIsDeclarationDialogOpen(true); }}>
                            {declaredNumber ? (
-                              <Badge variant="secondary" className="text-lg h-9 w-12 flex items-center justify-center font-bold border-2 border-primary text-primary">
-                                {declaredNumber}
-                              </Badge>
+                              <Badge variant="secondary" className="text-lg h-9 w-12 flex items-center justify-center font-bold border-2 border-primary text-primary">{declaredNumber}</Badge>
                            ) : (
-                             <Button 
-                               variant="ghost" 
-                               size="icon" 
-                               className="text-muted-foreground hover:text-primary">
-                               <Megaphone className="h-5 w-5" />
-                             </Button>
+                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary"><Megaphone className="h-5 w-5" /></Button>
                            )}
                           </div>
-                           <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleOpenSheet(sheet)}>
-                              Open <ArrowUpRight className="ml-2 h-4 w-4" />
-                           </Button>
+                           <Button variant="outline" size="sm" onClick={() => handleOpenSheet(sheet)}>Open <ArrowUpRight className="ml-2 h-4 w-4" /></Button>
                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDrawToDelete({ draw: sheet.draw, date: sheet.date }) }}>
                               <Trash2 className="h-4 w-4" />
                            </Button>
@@ -546,7 +444,6 @@ export default function Home() {
                     )})}
                   </div>
                 </div>
-
               </div>
             )}
           </TabsContent>
@@ -577,7 +474,7 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="admin-panel">
             <AdminPanel 
-              userId={APP_USER_ID} 
+              userId={userId} 
               clients={clients} 
               savedSheetLog={savedSheetLog}
               settlements={settlements}
@@ -589,23 +486,14 @@ export default function Home() {
 
        <Dialog open={isDeclarationDialogOpen} onOpenChange={setIsDeclarationDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Declare Result for Draw {declarationDraw}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Declare Result : {declarationDraw}</DialogTitle></DialogHeader>
           <div className="my-4 space-y-4">
-             <Label htmlFor="declaration-number">Enter 2-digit number</Label>
-             <Input 
-                id="declaration-number"
-                value={declarationNumber}
-                onChange={(e) => setDeclarationNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
-                placeholder="00"
-                maxLength={2}
-                className="text-center text-2xl font-bold h-16"
-             />
+             <Label>Enter 2-digit winning number</Label>
+             <Input value={declarationNumber} onChange={(e) => setDeclarationNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))} placeholder="00" maxLength={2} className="text-center text-3xl font-black h-20" />
           </div>
           <DialogFooter>
-            <Button onClick={handleUndeclare} variant="destructive">Undeclare</Button>
-            <Button onClick={handleDeclareOrUndeclare} disabled={declarationNumber.length !== 2}>Declare</Button>
+            <Button onClick={() => { removeDeclaredNumber(declarationDraw, selectedDate!); setIsDeclarationDialogOpen(false); }} variant="destructive">Undeclare</Button>
+            <Button onClick={handleDeclareOrUndeclare} disabled={declarationNumber.length !== 2}>Declare Result</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -614,13 +502,11 @@ export default function Home() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete all saved sheets for draw <strong className="font-bold">{drawToDelete?.draw}</strong> on <strong className="font-bold">{drawToDelete ? format(drawToDelete.date, 'PPP') : ''}</strong>. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Delete all saved sheets for {drawToDelete?.draw} on {drawToDelete ? format(drawToDelete.date, 'PPP') : ''}?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDrawSheets}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if(drawToDelete) { deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date); removeDeclaredNumber(drawToDelete.draw, drawToDelete.date); setDrawToDelete(null); } }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

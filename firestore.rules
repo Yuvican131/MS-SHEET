@@ -2,12 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * @description Allow full unrestricted access to all documents.
-     * This is required because authentication has been removed and the app 
-     * operates in a global-admin mode.
+     * @description Secure rules: Users can only access their own data.
+     * The {userId} in the path must match the authenticated user's UID.
      */
-    match /{allPaths=**} {
-      allow read, write: if true;
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /{allPaths=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    /**
+     * @description Allow the automation API to find clients by phone number.
+     * This is a specific read-only exception for the clients collection.
+     */
+    match /users/{userId}/clients/{clientId} {
+      allow read: if true; 
     }
   }
 }
