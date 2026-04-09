@@ -2,39 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
+    /**
+     * @description Checks if the user is the 'global-admin' or the authenticated owner.
+     */
     function isOwner(userId) {
-      return (isSignedIn() && request.auth.uid == userId) || userId == 'global-admin';
+      return userId == 'global-admin' || (request.auth != null && request.auth.uid == userId);
     }
 
     /**
-     * @description Controls access to the clients collection for each user.
-     * @path /users/{userId}/clients/{clientId}
+     * @description Grants access to all data under a user's path if they are the owner.
+     * This covers clients, sheetLogs, declaredNumbers, and any other sub-collections.
      */
-    match /users/{userId}/clients/{clientId} {
-      allow get, list: if isOwner(userId);
-      allow create, update, delete: if isOwner(userId);
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isOwner(userId);
     }
-
-    /**
-     * @description Controls access to the sheetLogs collection for each user.
-     * @path /users/{userId}/sheetLogs/{sheetLogId}
-     */
-    match /users/{userId}/sheetLogs/{sheetLogId} {
-      allow get, list: if isOwner(userId);
-      allow create, update, delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Controls access to the declaredNumbers collection for each user.
-     * @path /users/{userId}/declaredNumbers/{drawId}
-     */
-    match /users/{userId}/declaredNumbers/{drawId} {
-      allow get, list: if isOwner(userId);
-      allow create, update, delete: if isOwner(userId);
+    
+    // Explicitly allow access to the users collection itself for discovery if needed
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
     }
   }
 }
