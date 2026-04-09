@@ -25,16 +25,15 @@ import { useClients } from "@/hooks/useClients"
 import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
 import type { Client } from "@/hooks/useClients"
-import { useUser } from "@/firebase"
-import { useAuth } from "@/firebase"
-import { signOut } from "firebase/auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import type { Settlement } from "@/components/admin-panel";
-import { AuthScreen } from "@/components/auth-screen"
+
+// Using a fixed ID for the application since authentication is removed
+const APP_USER_ID = "global-admin";
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -81,14 +80,12 @@ export default function Home() {
   const [isDeclarationDialogOpen, setIsDeclarationDialogOpen] = useState(false);
   const { toast } = useToast();
   
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
   const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
 
-  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
-  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(user?.uid);
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(user?.uid);
+  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(APP_USER_ID);
+  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(APP_USER_ID);
+  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(APP_USER_ID);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
@@ -336,7 +333,7 @@ export default function Home() {
   };
 
   const handleDeleteDrawSheets = () => {
-    if (drawToDelete && user?.uid) {
+    if (drawToDelete) {
         deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
         removeDeclaredNumber(drawToDelete.draw, drawToDelete.date);
         setActiveSheets(prev => prev.filter(s => !(s.draw === drawToDelete.draw && isSameDay(s.date, drawToDelete.date))));
@@ -369,14 +366,6 @@ export default function Home() {
     </TabsList>
   );
 
-  if (isUserLoading) {
-    return <div className="flex items-center justify-center h-screen bg-zinc-950 text-white font-black uppercase tracking-widest text-sm">Initializing System...</div>;
-  }
-
-  if (!user) {
-    return <AuthScreen />;
-  }
-
   const isSheetAlreadyAdded = formSelectedDraw ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;
 
 
@@ -405,7 +394,7 @@ export default function Home() {
                   <Moon className="h-5 w-5" />
                 </div>
 
-               {selectedDraw && activeTab === 'sheet' ? (
+               {selectedDraw && activeTab === 'sheet' && (
                  <div className="flex items-center">
                     <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -416,10 +405,6 @@ export default function Home() {
                         Last Entry
                     </Button>
                 </div>
-              ) : (
-                <Button onClick={() => signOut(auth)} variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-                   <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                </Button>
               )}
             </div>
           </div>
@@ -582,7 +567,7 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="admin-panel">
             <AdminPanel 
-              userId={user?.uid} 
+              userId={APP_USER_ID} 
               clients={clients} 
               savedSheetLog={savedSheetLog}
               settlements={settlements}
