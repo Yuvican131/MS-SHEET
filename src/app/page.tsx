@@ -34,6 +34,11 @@ import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import type { Settlement } from "@/components/admin-panel";
 
+// Stable constants to prevent memo invalidation on every render
+const EMPTY_ARRAY: any[] = [];
+const EMPTY_SETTLEMENTS = {};
+const DRAWS_ORDER = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -59,38 +64,10 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
-const DRAWS_ORDER = ["DD", "ML", "FB", "GB", "GL", "DS"];
-
 type ActiveSheet = {
     draw: string;
     date: Date;
 };
-
-// Moved NavTabsList outside to prevent re-creation on every render
-const NavTabsList = () => (
-  <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
-    <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-      <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
-      <span className="hidden md:inline">Home</span>
-    </TabsTrigger>
-    <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-      <Users className="h-5 w-5 md:h-4 md:w-4" />
-      <span className="hidden md:inline">CLIENTS</span>
-    </TabsTrigger>
-    <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-      <Building className="h-5 w-5 md:h-4 md:w-4" />
-      <span className="hidden md:inline">LEDGER</span>
-    </TabsTrigger>
-    <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-      <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
-      <span className="hidden md:inline">STATS</span>
-    </TabsTrigger>
-    <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-      <Shield className="h-5 w-5 md:h-4 md:w-4" />
-      <span className="hidden md:inline">ADMIN</span>
-    </TabsTrigger>
-  </TabsList>
-);
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -142,7 +119,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const [formSelectedDate, setFormSelectedDate] = useState<Date | undefined>(undefined);
   const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
   
-  const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
+  const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>(EMPTY_SETTLEMENTS);
 
   useEffect(() => {
     const now = new Date();
@@ -175,7 +152,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       if (!uniqueSheetKeys.has(key)) {
         uniqueSheetKeys.add(key);
         const dateParts = log.date.split('-').map(Number);
-        // Using UTC to avoid hydration mismatches
         const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
         allSheets.push({ draw: log.draw, date: logDate });
       }
@@ -200,7 +176,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
 
 
   const accounts = useMemo(() => {
-    if (!clients || clients.length === 0) return [];
+    if (!clients || clients.length === 0) return EMPTY_ARRAY;
     
     const dateForCalc = selectedDate || new Date();
     const allLogs = Object.values(savedSheetLog).flat();
@@ -323,6 +299,31 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     setDeclarationNumber("");
   };
 
+  const navTabsList = (
+    <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
+      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+        <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden md:inline">Home</span>
+      </TabsTrigger>
+      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+        <Users className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden md:inline">CLIENTS</span>
+      </TabsTrigger>
+      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+        <Building className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden md:inline">LEDGER</span>
+      </TabsTrigger>
+      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+        <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden md:inline">STATS</span>
+      </TabsTrigger>
+      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+        <Shield className="h-5 w-5 md:h-4 md:w-4" />
+        <span className="hidden md:inline">ADMIN</span>
+      </TabsTrigger>
+    </TabsList>
+  );
+
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <main className="flex-1 p-2 md:p-4 flex flex-col min-h-0">
@@ -331,10 +332,10 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             <div className="flex items-center flex-grow">
               {isMobile ? (
                   <ScrollArea className="w-full whitespace-nowrap">
-                      <NavTabsList />
+                      {navTabsList}
                   </ScrollArea>
               ) : (
-                  <NavTabsList />
+                  navTabsList
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -460,7 +461,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
               accounts={accounts} 
               clients={clients} 
               selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
+              onDateChange={onDateChange}
               getDeclaredNumber={getDeclaredNumber}
               onClientTransaction={handleClientTransaction}
             />

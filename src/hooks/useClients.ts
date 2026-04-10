@@ -11,6 +11,8 @@ import {
 } from '@/firebase/non-blocking-updates';
 import { useSheetLog } from './useSheetLog';
 
+const EMPTY_ARRAY: any[] = [];
+
 export type Client = {
   id: string;
   name: string;
@@ -34,7 +36,7 @@ export const useClients = (userId?: string) => {
 
   const { data, isLoading, error } = useCollection<Omit<Client, 'id'>>(clientsColRef);
   
-  const clients = useMemo(() => data || [], [data]);
+  const clients = useMemo(() => data || EMPTY_ARRAY, [data]);
 
   const addClient = (client: Omit<Client, 'id'>) => {
     if (!clientsColRef) return;
