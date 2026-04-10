@@ -19,10 +19,10 @@ service cloud.firestore {
     }
 
     /**
-     * @description Public lookup for individual client details if needed for specific automations.
+     * @description Internal lookup for individual client details.
      */
     match /users/{userId}/clients/{clientId} {
-      allow read: if true; 
+      allow read: if request.auth != null && request.auth.uid == userId; 
     }
   }
 }

@@ -299,44 +299,36 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     setDeclarationNumber("");
   };
 
-  const navTabsList = (
-    <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
-      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">Home</span>
-      </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Users className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">CLIENTS</span>
-      </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Building className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">LEDGER</span>
-      </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">STATS</span>
-      </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-        <Shield className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">ADMIN</span>
-      </TabsTrigger>
-    </TabsList>
-  );
-
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <main className="flex-1 p-2 md:p-4 flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-0">
           <div className="flex items-center justify-between pb-2 flex-wrap gap-2">
             <div className="flex items-center flex-grow">
-              {isMobile ? (
-                  <ScrollArea className="w-full whitespace-nowrap">
-                      {navTabsList}
-                  </ScrollArea>
-              ) : (
-                  navTabsList
-              )}
+              <ScrollArea className="w-full whitespace-nowrap lg:w-auto">
+                <TabsList className="flex w-full md:w-auto border-none p-0 bg-transparent">
+                  <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/50">
+                    <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
+                    <span className="hidden md:inline">Home</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/50">
+                    <Users className="h-5 w-5 md:h-4 md:w-4" />
+                    <span className="hidden md:inline">CLIENTS</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/50">
+                    <Building className="h-5 w-5 md:h-4 md:w-4" />
+                    <span className="hidden md:inline">LEDGER</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/50">
+                    <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
+                    <span className="hidden md:inline">STATS</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/50">
+                    <Shield className="h-5 w-5 md:h-4 md:w-4" />
+                    <span className="hidden md:inline">ADMIN</span>
+                  </TabsTrigger>
+                </TabsList>
+              </ScrollArea>
             </div>
             <div className="flex items-center gap-2">
                 <div className="flex items-center space-x-2 mr-2">
@@ -461,7 +453,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
               accounts={accounts} 
               clients={clients} 
               selectedDate={selectedDate}
-              onDateChange={onDateChange}
+              onDateChange={setSelectedDate}
               getDeclaredNumber={getDeclaredNumber}
               onClientTransaction={handleClientTransaction}
             />
