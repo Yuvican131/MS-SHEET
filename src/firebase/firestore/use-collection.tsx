@@ -31,7 +31,7 @@ export interface InternalQuery extends Query<DocumentData> {
 }
 
 export function useCollection<T = any>(
-    memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    memoizedTargetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>) | null | undefined,
 ): UseCollectionResult<T> {
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -85,5 +85,5 @@ export function useCollection<T = any>(
     isLoading, 
     error, 
     setData 
-  }), [data, isLoading, error]);
+  }), [data, isLoading, error, setData]);
 }

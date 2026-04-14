@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
@@ -145,7 +144,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     const uniqueSheetKeys = new Set<string>();
     const allSheets: ActiveSheet[] = [];
 
-    // Combine logs and manual sheets into a stable list
     const allLogs = Object.values(savedSheetLog).flat();
     allLogs.forEach(log => {
       const key = `${log.draw}-${log.date}`;
@@ -256,7 +254,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         const drawToOpen = formSelectedDraw;
         const dateToOpen = formSelectedDate;
 
-        // Ensure date is treated as UTC for history persistence consistency
         const utcDate = new Date(Date.UTC(dateToOpen.getFullYear(), dateToOpen.getMonth(), dateToOpen.getDate()));
         const newSheet: ActiveSheet = { draw: drawToOpen, date: utcDate };
         
@@ -266,7 +263,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             return [newSheet, ...prev];
         });
 
-        // Immediately open the newly created draw
         setSelectedDraw(drawToOpen);
         setSelectedDate(dateToOpen);
     }
