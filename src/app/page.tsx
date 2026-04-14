@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager from "@/components/clients-manager"
@@ -253,7 +252,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     });
   }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
-  const handleAddSheet = () => {
+  const handleAddSheet = useCallback(() => {
     if(formSelectedDraw && formSelectedDate) {
         const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
         const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
@@ -263,14 +262,14 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             setManualSheets(prev => [newSheet, ...prev]);
         }
     }
-  };
+  }, [formSelectedDraw, formSelectedDate, activeSheets]);
 
-  const handleOpenSheet = (sheet: ActiveSheet) => {
+  const handleOpenSheet = useCallback((sheet: ActiveSheet) => {
     setSelectedDraw(sheet.draw);
     setSelectedDate(sheet.date);
-  };
+  }, []);
   
-  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date, rawInput?: string) => {
+  const handleClientSheetSave = useCallback((clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date, rawInput?: string) => {
     const todayStr = format(date, 'yyyy-MM-dd');
     const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
     if (newEntryTotal === 0) return;
@@ -287,9 +286,9 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     });
   
     toast({ title: "Sheet Saved", description: `${clientName}'s data logged.` });
-  };
+  }, [addSheetLogEntry, toast]);
   
-  const handleDeclareOrUndeclare = () => {
+  const handleDeclareOrUndeclare = useCallback(() => {
     const dateToUse = selectedDate || new Date();
     if (declarationNumber.length === 2) {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
@@ -297,7 +296,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     }
     setIsDeclarationDialogOpen(false);
     setDeclarationNumber("");
-  };
+  }, [selectedDate, declarationNumber, declarationDraw, setDeclaredNumber, toast]);
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">

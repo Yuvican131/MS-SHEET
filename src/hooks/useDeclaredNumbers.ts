@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useState, useCallback } from 'react';
 import { collection, doc } from 'firebase/firestore';
@@ -50,7 +49,7 @@ export const useDeclaredNumbers = (userId?: string) => {
     return entry ? entry.number : undefined;
   }, [declaredNumbers]);
 
-  const setDeclaredNumber = (draw: string, number: string, date: Date) => {
+  const setDeclaredNumber = useCallback((draw: string, number: string, date: Date) => {
     if (!date || !userId) return;
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
@@ -62,9 +61,9 @@ export const useDeclaredNumbers = (userId?: string) => {
     }));
     
     setDocumentNonBlocking(docRef, { number, draw, date: dateStr }, { merge: true });
-  };
+  }, [firestore, userId]);
   
-  const removeDeclaredNumber = (draw: string, date: Date) => {
+  const removeDeclaredNumber = useCallback((draw: string, date: Date) => {
     if (!date || !userId) return;
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
@@ -73,7 +72,14 @@ export const useDeclaredNumbers = (userId?: string) => {
 
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     deleteDocumentNonBlocking(docRef);
-  };
+  }, [firestore, userId]);
 
-  return { declaredNumbers, isLoading, error, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber };
+  return useMemo(() => ({ 
+    declaredNumbers, 
+    isLoading, 
+    error, 
+    setDeclaredNumber, 
+    removeDeclaredNumber, 
+    getDeclaredNumber 
+  }), [declaredNumbers, isLoading, error, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber]);
 };

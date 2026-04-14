@@ -1,6 +1,5 @@
-
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -38,41 +37,50 @@ export const useClients = (userId?: string) => {
   
   const clients = useMemo(() => data || EMPTY_ARRAY, [data]);
 
-  const addClient = (client: Omit<Client, 'id'>) => {
+  const addClient = useCallback((client: Omit<Client, 'id'>) => {
     if (!clientsColRef) return;
     addDocumentNonBlocking(clientsColRef, client);
     toast({ title: "Client Added", description: `${client.name} has been added.` });
-  };
+  }, [clientsColRef, toast]);
 
-  const updateClient = (client: Client) => {
+  const updateClient = useCallback((client: Client) => {
     if (!userId) return;
     const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
     const { id, ...clientData } = client;
     updateDocumentNonBlocking(clientRef, clientData);
     toast({ title: "Client Updated", description: `${client.name}'s details have been updated.` });
-  };
+  }, [firestore, userId, toast]);
 
-  const deleteClient = (id: string, name: string) => {
+  const deleteClient = useCallback((id: string, name: string) => {
     if (!userId) return;
     deleteSheetLogsForClient(id, false).then(() => {
       const clientRef = doc(firestore, `users/${userId}/clients`, id);
       deleteDocumentNonBlocking(clientRef);
       toast({ title: "Client Deleted", description: `${name} and all their data have been deleted.` });
     });
-  };
+  }, [firestore, userId, deleteSheetLogsForClient, toast]);
   
-  const clearClientData = (id: string, name: string) => {
+  const clearClientData = useCallback((id: string, name: string) => {
     deleteSheetLogsForClient(id, true);
     toast({ title: "Client Data Cleared", description: `All sheet data for ${name} has been cleared.` });
-  }
+  }, [deleteSheetLogsForClient, toast]);
 
-  const handleClientTransaction = (clientId: string, amount: number) => {
+  const handleClientTransaction = useCallback((clientId: string, amount: number) => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
       const newBalance = (client.activeBalance || 0) + amount;
       updateClient({ ...client, activeBalance: newBalance });
     }
-  };
+  }, [clients, updateClient]);
 
-  return { clients, isLoading, error, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData };
+  return useMemo(() => ({ 
+    clients, 
+    isLoading, 
+    error, 
+    addClient, 
+    updateClient, 
+    deleteClient, 
+    handleClientTransaction, 
+    clearClientData 
+  }), [clients, isLoading, error, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData]);
 };

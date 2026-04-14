@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Query,
   onSnapshot,
@@ -114,5 +113,6 @@ export function useCollection<T = any>(
     console.warn(memoizedTargetRefOrQuery + ' may not have been properly memoized using useMemoFirebase');
   }
 
-  return { data, isLoading, error, setData };
+  // Stabilize the return object to prevent re-renders in hooks that depend on it
+  return useMemo(() => ({ data, isLoading, error, setData }), [data, isLoading, error]);
 }

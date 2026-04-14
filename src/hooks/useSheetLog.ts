@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useCallback } from 'react';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
@@ -65,7 +64,7 @@ export const useSheetLog = (userId?: string) => {
   }, [firestore, setSheetLogData, toast, userId]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
         if (!userId) { resolve(); return; }
         try {
             const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
@@ -124,5 +123,13 @@ export const useSheetLog = (userId?: string) => {
     }
   }, [firestore, setSheetLogData, toast, userId]);
 
-  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
+  return useMemo(() => ({ 
+    savedSheetLog, 
+    isLoading, 
+    error, 
+    addSheetLogEntry, 
+    deleteSheetLogsForClient, 
+    deleteSheetLogsForDraw, 
+    deleteSheetLogEntry 
+  }), [savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, deleteSheetLogsForDraw, deleteSheetLogEntry]);
 };
