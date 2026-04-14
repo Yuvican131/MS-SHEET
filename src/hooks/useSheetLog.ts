@@ -32,7 +32,8 @@ export const useSheetLog = (userId?: string) => {
   const { data: sheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
 
   const savedSheetLog = useMemo(() => {
-    if (!sheetLogData) return EMPTY_OBJECT;
+    if (!sheetLogData || sheetLogData.length === 0) return EMPTY_OBJECT as { [key: string]: SavedSheetInfo[] };
+    
     const logByDraw: { [key: string]: SavedSheetInfo[] } = {};
     sheetLogData.forEach(log => {
       if (!logByDraw[log.draw]) {

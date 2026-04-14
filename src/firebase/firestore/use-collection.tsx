@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -21,12 +21,17 @@ export interface UseCollectionResult<T> {
   setData: React.Dispatch<React.SetStateAction<WithId<T>[] | null>>;
 }
 
+const EMPTY_ARRAY: any[] = [];
+
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>) | null | undefined,
 ): UseCollectionResult<T> {
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  
+  // Track previous data stringified to detect real changes
+  const prevDataHash = useRef<string>("");
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -36,7 +41,8 @@ export function useCollection<T = any>(
       return;
     }
 
-    setIsLoading(true);
+    // Only set loading if not already loading to avoid extra renders
+    setIsLoading(current => current ? current : true);
     setError(null);
 
     const unsubscribe = onSnapshot(
@@ -46,7 +52,14 @@ export function useCollection<T = any>(
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
         }
-        setData(results);
+        
+        // Simple hash check to avoid updating state with same data
+        const currentHash = JSON.stringify(results);
+        if (currentHash !== prevDataHash.current) {
+          prevDataHash.current = currentHash;
+          setData(results.length === 0 ? EMPTY_ARRAY : results);
+        }
+        
         setError(null);
         setIsLoading(false);
       },

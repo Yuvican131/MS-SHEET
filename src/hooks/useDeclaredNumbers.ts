@@ -13,6 +13,8 @@ export interface DeclaredNumber {
   _deleted?: boolean;
 }
 
+const EMPTY_OBJECT = {};
+
 export const useDeclaredNumbers = (userId?: string) => {
   const firestore = useFirestore();
   const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | null }>({});
@@ -25,6 +27,8 @@ export const useDeclaredNumbers = (userId?: string) => {
   const { data, isLoading, error } = useCollection<Omit<DeclaredNumber, 'id'>>(declaredNumbersColRef);
 
   const declaredNumbers = useMemo(() => {
+    if (!data && Object.keys(localDeclaredNumbers).length === 0) return EMPTY_OBJECT as { [key: string]: DeclaredNumber };
+
     const fromDb = data?.reduce((acc, item) => {
       acc[item.id] = item;
       return acc;
@@ -38,7 +42,7 @@ export const useDeclaredNumbers = (userId?: string) => {
       }
     });
 
-    return merged as { [key: string]: DeclaredNumber };
+    return Object.keys(merged).length === 0 ? (EMPTY_OBJECT as { [key: string]: DeclaredNumber }) : (merged as { [key: string]: DeclaredNumber });
   }, [data, localDeclaredNumbers]);
 
   const getDeclaredNumber = useCallback((draw: string, date: Date | undefined): string | undefined => {

@@ -1,6 +1,6 @@
 'use client';
     
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -30,11 +30,10 @@ export interface UseDocResult<T> {
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
-  type StateDataType = WithId<T> | null;
-
-  const [data, setData] = useState<StateDataType>(null);
+  const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const prevDataHash = useRef<string>("");
 
   useEffect(() => {
     if (!memoizedDocRef) {
@@ -44,16 +43,21 @@ export function useDoc<T = any>(
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(current => current ? current : true);
     setError(null);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
+          const result = { ...(snapshot.data() as T), id: snapshot.id };
+          const currentHash = JSON.stringify(result);
+          if (currentHash !== prevDataHash.current) {
+            prevDataHash.current = currentHash;
+            setData(result);
+          }
         } else {
-          setData(null);
+          if (data !== null) setData(null);
         }
         setError(null);
         setIsLoading(false);
@@ -72,7 +76,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]);
+  }, [memoizedDocRef, data]);
 
   // Memoize the return value to prevent infinite render loops in components using this hook
   return useMemo(() => ({ data, isLoading, error }), [data, isLoading, error]);
