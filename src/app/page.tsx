@@ -26,14 +26,13 @@ import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import type { Settlement } from "@/components/admin-panel";
 
-// Stable constants to prevent memo invalidation on every render
+// Stable constants
 const EMPTY_ARRAY: any[] = [];
 const EMPTY_SETTLEMENTS = {};
 const DRAWS_ORDER = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -77,6 +76,10 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  const handleLogout = useCallback(() => {
+    signOut(auth);
+  }, [auth]);
+
   if (!mounted || isUserLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -90,11 +93,11 @@ export default function Home() {
     return <AuthScreen />;
   }
 
-  return <AuthenticatedApp userId={user.uid} onLogout={() => signOut(auth)} />;
+  return <AuthenticatedApp userId={user.uid} onLogout={handleLogout} />;
 }
 
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: any) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
+  const gridSheetRef = useRef<any>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [lastEntry, setLastEntry] = useState('');
@@ -115,11 +118,10 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(() => new Date());
-  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
+  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>(EMPTY_ARRAY);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>(EMPTY_SETTLEMENTS);
 
-  // Initialize data on mount or user change
   useEffect(() => {
     try {
       const savedSettlements = localStorage.getItem(`settlements-${userId}`);
@@ -131,7 +133,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     }
   }, [userId]);
 
-  // Sync settlements to local storage
   useEffect(() => {
     if (userId && settlements !== EMPTY_SETTLEMENTS) {
       localStorage.setItem(`settlements-${userId}`, JSON.stringify(settlements));
@@ -142,7 +143,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     const uniqueSheetKeys = new Set<string>();
     const allSheets: ActiveSheet[] = [];
 
-    // Group logs into sheets
     Object.values(savedSheetLog).flat().forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
@@ -153,7 +153,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       }
     });
 
-    // Add manual placeholders
     manualSheets.forEach(manualSheet => {
         const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
         if (!uniqueSheetKeys.has(key)) {

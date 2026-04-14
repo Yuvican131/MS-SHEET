@@ -69,11 +69,14 @@ export const useClients = (userId?: string) => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
       const newBalance = (client.activeBalance || 0) + amount;
-      updateClient({ ...client, activeBalance: newBalance });
+      // We pass a direct object to updateClient instead of finding it again
+      const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
+      const { id, ...rest } = client;
+      updateDocumentNonBlocking(clientRef, { ...rest, activeBalance: newBalance });
+      toast({ title: "Balance Updated" });
     }
-  }, [clients, updateClient]);
+  }, [clients, userId, firestore, toast]);
 
-  // Memoize the return object to prevent stable hooks from triggering loops in parent components
   return useMemo(() => ({ 
     clients, 
     isLoading, 

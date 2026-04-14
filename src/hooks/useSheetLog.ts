@@ -14,7 +14,7 @@ export interface SavedSheetInfo {
   clientId: string;
   gameTotal: number;
   data: { [key: string]: string };
-  date: string; // ISO date string
+  date: string; 
   draw: string;
   rawInput?: string;
   createdAt?: string;
@@ -79,10 +79,11 @@ export const useSheetLog = (userId?: string) => {
             if (!currentLogs) return null;
             return currentLogs.filter(log => log.clientId !== clientId);
         });
+        if (showToast) toast({ title: "Client Data Cleared" });
     } catch (e) {
         console.error("Error clearing sheet logs: ", e);
     }
-  }, [firestore, setSheetLogData, userId]);
+  }, [firestore, setSheetLogData, userId, toast]);
   
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
     if (!userId) return;
@@ -115,7 +116,6 @@ export const useSheetLog = (userId?: string) => {
     }
   }, [firestore, setSheetLogData, toast, userId]);
 
-  // Memoize the return value to prevent re-render loops in consumers
   return useMemo(() => ({ 
     savedSheetLog, 
     isLoading, 
