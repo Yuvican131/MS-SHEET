@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
@@ -119,7 +120,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(() => new Date());
-  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>(EMPTY_ARRAY);
+  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>(EMPTY_SETTLEMENTS);
 
@@ -144,7 +145,9 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     const uniqueSheetKeys = new Set<string>();
     const allSheets: ActiveSheet[] = [];
 
-    Object.values(savedSheetLog).flat().forEach(log => {
+    // Combine logs and manual sheets into a stable list
+    const allLogs = Object.values(savedSheetLog).flat();
+    allLogs.forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
         uniqueSheetKeys.add(key);
@@ -250,15 +253,24 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
 
   const handleAddSheet = useCallback(() => {
     if(formSelectedDraw && formSelectedDate) {
-        const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
-        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
+        const drawToOpen = formSelectedDraw;
+        const dateToOpen = formSelectedDate;
+
+        // Ensure date is treated as UTC for history persistence consistency
+        const utcDate = new Date(Date.UTC(dateToOpen.getFullYear(), dateToOpen.getMonth(), dateToOpen.getDate()));
+        const newSheet: ActiveSheet = { draw: drawToOpen, date: utcDate };
         
-        const sheetExists = activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
-        if (!sheetExists) {
-            setManualSheets(prev => [newSheet, ...prev]);
-        }
+        setManualSheets(prev => {
+            const exists = prev.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
+            if (exists) return prev;
+            return [newSheet, ...prev];
+        });
+
+        // Immediately open the newly created draw
+        setSelectedDraw(drawToOpen);
+        setSelectedDate(dateToOpen);
     }
-  }, [formSelectedDraw, formSelectedDate, activeSheets]);
+  }, [formSelectedDraw, formSelectedDate]);
 
   const handleOpenSheet = useCallback((sheet: ActiveSheet) => {
     setSelectedDraw(sheet.draw);
