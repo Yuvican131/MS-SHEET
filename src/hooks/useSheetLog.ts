@@ -64,32 +64,24 @@ export const useSheetLog = (userId?: string) => {
   }, [firestore, setSheetLogData, toast, userId]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
-    return new Promise<void>(async (resolve, reject) => {
-        if (!userId) { resolve(); return; }
-        try {
-            const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
-            const querySnapshot = await getDocs(q);
+    if (!userId) return;
+    try {
+        const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
+        const querySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) {
-                resolve();
-                return;
-            }
+        if (querySnapshot.empty) return;
 
-            const batch = writeBatch(firestore);
-            querySnapshot.forEach((doc) => batch.delete(doc.ref));
-            await batch.commit();
+        const batch = writeBatch(firestore);
+        querySnapshot.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
 
-            setSheetLogData(currentLogs => {
-                if (!currentLogs) return null;
-                return currentLogs.filter(log => log.clientId !== clientId);
-            });
-
-            resolve();
-        } catch (e) {
-            console.error("Error clearing sheet logs: ", e);
-            reject(e);
-        }
-    });
+        setSheetLogData(currentLogs => {
+            if (!currentLogs) return null;
+            return currentLogs.filter(log => log.clientId !== clientId);
+        });
+    } catch (e) {
+        console.error("Error clearing sheet logs: ", e);
+    }
   }, [firestore, setSheetLogData, userId]);
   
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
@@ -123,6 +115,7 @@ export const useSheetLog = (userId?: string) => {
     }
   }, [firestore, setSheetLogData, toast, userId]);
 
+  // Memoize the return value to prevent re-render loops in consumers
   return useMemo(() => ({ 
     savedSheetLog, 
     isLoading, 

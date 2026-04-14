@@ -73,6 +73,7 @@ export const useClients = (userId?: string) => {
     }
   }, [clients, updateClient]);
 
+  // Memoize the return object to prevent stable hooks from triggering loops in parent components
   return useMemo(() => ({ 
     clients, 
     isLoading, 

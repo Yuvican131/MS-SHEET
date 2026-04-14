@@ -96,7 +96,7 @@ export default function Home() {
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: any) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -107,7 +107,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const [drawToDelete, setDrawToDelete] = useState<ActiveSheet | null>(null);
   
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(userId);
@@ -115,29 +114,26 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const { setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, declaredNumbers } = useDeclaredNumbers(userId);
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
-  const [formSelectedDate, setFormSelectedDate] = useState<Date | undefined>(undefined);
+  const [formSelectedDate, setFormSelectedDate] = useState<Date>(() => new Date());
   const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>(EMPTY_SETTLEMENTS);
 
+  // Initialize data on mount or user change
   useEffect(() => {
-    const now = new Date();
-    setSelectedDate(now);
-    setFormSelectedDate(now);
-
     try {
       const savedSettlements = localStorage.getItem(`settlements-${userId}`);
       if (savedSettlements) {
-        const parsedSettlements = JSON.parse(savedSettlements);
-        setSettlements(parsedSettlements);
+        setSettlements(JSON.parse(savedSettlements));
       }
     } catch (error) {
       console.error("Failed to parse settlements from localStorage", error);
     }
   }, [userId]);
 
+  // Sync settlements to local storage
   useEffect(() => {
-    if (userId && Object.keys(settlements).length > 0) {
+    if (userId && settlements !== EMPTY_SETTLEMENTS) {
       localStorage.setItem(`settlements-${userId}`, JSON.stringify(settlements));
     }
   }, [settlements, userId]);
@@ -146,6 +142,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     const uniqueSheetKeys = new Set<string>();
     const allSheets: ActiveSheet[] = [];
 
+    // Group logs into sheets
     Object.values(savedSheetLog).flat().forEach(log => {
       const key = `${log.draw}-${log.date}`;
       if (!uniqueSheetKeys.has(key)) {
@@ -156,6 +153,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       }
     });
 
+    // Add manual placeholders
     manualSheets.forEach(manualSheet => {
         const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
         if (!uniqueSheetKeys.has(key)) {
@@ -164,20 +162,18 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         }
     });
 
-    allSheets.sort((a, b) => {
+    return allSheets.sort((a, b) => {
         const dateComparison = b.date.getTime() - a.date.getTime();
         if (dateComparison !== 0) return dateComparison;
         return DRAWS_ORDER.indexOf(a.draw) - DRAWS_ORDER.indexOf(b.draw);
     });
-
-    return allSheets;
   }, [savedSheetLog, manualSheets]);
 
 
   const accounts = useMemo(() => {
     if (!clients || clients.length === 0) return EMPTY_ARRAY;
     
-    const dateForCalc = selectedDate || new Date();
+    const dateForCalc = selectedDate;
     const allLogs = Object.values(savedSheetLog).flat();
   
     return clients.map(client => {
@@ -289,9 +285,8 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   }, [addSheetLogEntry, toast]);
   
   const handleDeclareOrUndeclare = useCallback(() => {
-    const dateToUse = selectedDate || new Date();
     if (declarationNumber.length === 2) {
-      setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
+      setDeclaredNumber(declarationDraw, declarationNumber, selectedDate);
       toast({ title: "Success", description: `Result declared.` });
     }
     setIsDeclarationDialogOpen(false);
@@ -341,7 +336,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
             </div>
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-            {selectedDraw && selectedDate ? (
+            {selectedDraw ? (
               <GridSheet 
                 ref={gridSheetRef} 
                 draw={selectedDraw} 
@@ -356,7 +351,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                 accounts={accounts}
                 draws={DRAWS_ORDER}
                 onDeleteLogEntry={deleteSheetLogEntry}
-                onBack={() => { setSelectedDraw(null); setSelectedDate(undefined); }}
+                onBack={() => { setSelectedDraw(null); }}
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">
@@ -480,7 +475,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
              <Input value={declarationNumber} onChange={(e) => setDeclarationNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))} placeholder="00" maxLength={2} className="text-center text-3xl font-black h-20" />
           </div>
           <DialogFooter>
-            <Button onClick={() => { if(selectedDate) removeDeclaredNumber(declarationDraw, selectedDate); setIsDeclarationDialogOpen(false); }} variant="destructive">Undeclare</Button>
+            <Button onClick={() => { removeDeclaredNumber(declarationDraw, selectedDate); setIsDeclarationDialogOpen(false); }} variant="destructive">Undeclare</Button>
             <Button onClick={handleDeclareOrUndeclare} disabled={declarationNumber.length !== 2}>Declare Result</Button>
           </DialogFooter>
         </DialogContent>
