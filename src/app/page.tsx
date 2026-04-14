@@ -32,7 +32,6 @@ import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import type { Settlement } from "@/components/admin-panel";
 
-// Stable constants
 const EMPTY_ARRAY: any[] = [];
 const EMPTY_SETTLEMENTS = {};
 const DRAWS_ORDER = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -80,6 +79,8 @@ export default function Home() {
     signOut(auth);
   }, [auth]);
 
+  const appUserId = useMemo(() => user?.uid || null, [user]);
+
   if (!mounted || isUserLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -89,11 +90,11 @@ export default function Home() {
     );
   }
 
-  if (!user) {
+  if (!user || !appUserId) {
     return <AuthScreen />;
   }
 
-  return <AuthenticatedApp userId={user.uid} onLogout={handleLogout} />;
+  return <AuthenticatedApp userId={appUserId} onLogout={handleLogout} />;
 }
 
 function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () => void }) {

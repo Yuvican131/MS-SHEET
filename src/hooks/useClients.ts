@@ -67,9 +67,8 @@ export const useClients = (userId?: string) => {
 
   const handleClientTransaction = useCallback((clientId: string, amount: number) => {
     const client = clients.find(c => c.id === clientId);
-    if (client) {
+    if (client && userId) {
       const newBalance = (client.activeBalance || 0) + amount;
-      // We pass a direct object to updateClient instead of finding it again
       const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
       const { id, ...rest } = client;
       updateDocumentNonBlocking(clientRef, { ...rest, activeBalance: newBalance });
