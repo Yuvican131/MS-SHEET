@@ -11,22 +11,14 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-/** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
 
-/**
- * Interface for the return value of the useDoc hook.
- * @template T Type of the document data.
- */
 export interface UseDocResult<T> {
-  data: WithId<T> | null; // Document data with ID, or null.
-  isLoading: boolean;       // True if loading.
-  error: FirestoreError | Error | null; // Error object, or null.
+  data: WithId<T> | null;
+  isLoading: boolean;
+  error: FirestoreError | Error | null;
 }
 
-/**
- * React hook to subscribe to a single Firestore document in real-time.
- */
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
@@ -43,7 +35,7 @@ export function useDoc<T = any>(
       return;
     }
 
-    setIsLoading(current => current ? current : true);
+    setIsLoading(true);
     setError(null);
 
     const unsubscribe = onSnapshot(
@@ -57,7 +49,7 @@ export function useDoc<T = any>(
             setData(result);
           }
         } else {
-          if (data !== null) setData(null);
+          setData(null);
         }
         setError(null);
         setIsLoading(false);
@@ -76,8 +68,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef, data]);
+  }, [memoizedDocRef]);
 
-  // Memoize the return value to prevent infinite render loops in components using this hook
   return useMemo(() => ({ data, isLoading, error }), [data, isLoading, error]);
 }

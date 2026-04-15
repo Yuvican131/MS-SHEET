@@ -245,7 +245,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
         balance: closingBalance,
         openingBalance: openingBalanceForSelectedDay,
         draws: updatedDrawsForSelectedDay,
-      };
+      } as Account;
     });
   }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
@@ -349,10 +349,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                 ref={gridSheetRef} 
                 draw={selectedDraw} 
                 date={selectedDate} 
-                lastEntry={lastEntry} 
-                setLastEntry={setLastEntry} 
-                isLastEntryDialogOpen={isLastEntryDialogOpen} 
-                setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                 clients={clients}
                 onClientSheetSave={handleClientSheetSave}
                 savedSheetLog={savedSheetLog}

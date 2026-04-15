@@ -30,19 +30,17 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
-  // Track previous data stringified to detect real changes
   const prevDataHash = useRef<string>("");
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
-      setData(prev => prev === null ? prev : null);
-      setIsLoading(prev => prev === false ? prev : false);
-      setError(prev => prev === null ? prev : null);
+      setData(null);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
-    // Only set loading if not already loading to avoid extra renders
-    setIsLoading(current => current ? current : true);
+    setIsLoading(true);
     setError(null);
 
     const unsubscribe = onSnapshot(
@@ -53,7 +51,6 @@ export function useCollection<T = any>(
           results.push({ ...(doc.data() as T), id: doc.id });
         }
         
-        // Simple hash check to avoid updating state with same data
         const currentHash = JSON.stringify(results);
         if (currentHash !== prevDataHash.current) {
           prevDataHash.current = currentHash;
@@ -64,13 +61,9 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        const path = memoizedTargetRefOrQuery.type === 'collection'
-          ? (memoizedTargetRefOrQuery as CollectionReference).path
-          : 'Query';
-
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
+          path: 'collection', // Generic path for query
         })
 
         setError(contextualError)
@@ -88,5 +81,5 @@ export function useCollection<T = any>(
     isLoading, 
     error, 
     setData 
-  }), [data, isLoading, error, setData]);
+  }), [data, isLoading, error]);
 }
