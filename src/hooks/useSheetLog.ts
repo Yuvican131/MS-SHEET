@@ -117,6 +117,7 @@ export const useSheetLog = (userId?: string) => {
     }
   }, [firestore, setSheetLogData, toast, userId]);
 
+  // Final return MUST be memoized to prevent infinite re-render loops in page.tsx
   return useMemo(() => ({ 
     savedSheetLog, 
     isLoading, 

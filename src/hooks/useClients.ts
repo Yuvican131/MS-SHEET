@@ -76,6 +76,7 @@ export const useClients = (userId?: string) => {
     }
   }, [clients, userId, firestore, toast]);
 
+  // Final return MUST be memoized to prevent infinite re-render loops in page.tsx
   return useMemo(() => ({ 
     clients, 
     isLoading, 

@@ -4,7 +4,7 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -44,6 +44,12 @@ export interface UserHookResult {
   userError: Error | null;
 }
 
+const EMPTY_USER_STATE: UserAuthState = {
+  user: null,
+  isUserLoading: true,
+  userError: null,
+};
+
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
@@ -52,15 +58,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
 }) => {
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true, 
-    userError: null,
-  });
+  const [userAuthState, setUserAuthState] = useState<UserAuthState>(EMPTY_USER_STATE);
 
   useEffect(() => {
     if (!auth) { 
-      setUserAuthState(prev => prev.userError?.message === "Auth service not provided." ? prev : { user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
 
@@ -68,6 +70,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => { 
         setUserAuthState(prev => {
+          // Only update if UID or loading state changed to prevent re-renders
           if (prev.user?.uid === firebaseUser?.uid && prev.isUserLoading === false) {
             return prev;
           }
@@ -75,7 +78,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         });
       },
       (error) => { 
-        setUserAuthState(prev => prev.userError === error ? prev : { user: null, isUserLoading: false, userError: error });
+        setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );
     return () => unsubscribe(); 
@@ -92,7 +95,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth, userAuthState.user, userAuthState.isUserLoading, userAuthState.userError]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -113,6 +116,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     throw new Error('Firebase core services not available. Check FirebaseProvider props.');
   }
 
+  // Memoize the return object to prevent infinite re-renders in consumers
   return useMemo(() => ({
     firebaseApp: context.firebaseApp!,
     firestore: context.firestore!,
@@ -144,5 +148,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
 
 export const useUser = (): UserHookResult => { 
   const { user, isUserLoading, userError } = useFirebase(); 
+  // Memoize the return object to prevent infinite re-renders in consumers
   return useMemo(() => ({ user, isUserLoading, userError }), [user, isUserLoading, userError]);
 };

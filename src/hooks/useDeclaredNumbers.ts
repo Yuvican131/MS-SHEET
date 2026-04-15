@@ -78,6 +78,7 @@ export const useDeclaredNumbers = (userId?: string) => {
     deleteDocumentNonBlocking(docRef);
   }, [firestore, userId]);
 
+  // Final return MUST be memoized to prevent infinite re-render loops in page.tsx
   return useMemo(() => ({ 
     declaredNumbers, 
     isLoading, 

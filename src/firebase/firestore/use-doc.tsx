@@ -35,8 +35,8 @@ export function useDoc<T = any>(
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    if (!isLoading) setIsLoading(true);
+    if (error) setError(null);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -70,5 +70,6 @@ export function useDoc<T = any>(
     return () => unsubscribe();
   }, [memoizedDocRef]);
 
+  // Return a memoized object to prevent infinite re-render loops in components using this hook
   return useMemo(() => ({ data, isLoading, error }), [data, isLoading, error]);
 }
