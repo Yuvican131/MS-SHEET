@@ -79,7 +79,7 @@ export default function Home() {
     signOut(auth);
   }, [auth]);
 
-  const appUserId = useMemo(() => user?.uid || null, [user]);
+  const appUserId = useMemo(() => user?.uid || null, [user?.uid]);
 
   if (!mounted || isUserLoading) {
     return (
@@ -101,8 +101,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const gridSheetRef = useRef<any>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
-  const [lastEntry, setLastEntry] = useState('');
-  const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
 
   const [declarationDraw, setDeclarationDraw] = useState("");

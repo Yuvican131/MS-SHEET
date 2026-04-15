@@ -29,9 +29,9 @@ export function useDoc<T = any>(
 
   useEffect(() => {
     if (!memoizedDocRef) {
-      setData(null);
-      setIsLoading(false);
-      setError(null);
+      if (data !== null) setData(null);
+      if (isLoading) setIsLoading(false);
+      if (error !== null) setError(null);
       return;
     }
 
@@ -49,20 +49,20 @@ export function useDoc<T = any>(
             setData(result);
           }
         } else {
-          setData(null);
+          if (data !== null) setData(null);
         }
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (err: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
-        })
+        });
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
         errorEmitter.emit('permission-error', contextualError);
       }
     );

@@ -27,8 +27,6 @@ export const useDeclaredNumbers = (userId?: string) => {
   const { data, isLoading, error } = useCollection<Omit<DeclaredNumber, 'id'>>(declaredNumbersColRef);
 
   const declaredNumbers = useMemo(() => {
-    if (!data && Object.keys(localDeclaredNumbers).length === 0) return EMPTY_OBJECT as { [key: string]: DeclaredNumber };
-
     const fromDb = data?.reduce((acc, item) => {
       acc[item.id] = item;
       return acc;
@@ -36,13 +34,15 @@ export const useDeclaredNumbers = (userId?: string) => {
 
     const merged = { ...fromDb, ...localDeclaredNumbers };
 
+    const clean: { [key: string]: DeclaredNumber } = {};
     Object.keys(merged).forEach(key => {
-      if (merged[key] === null || merged[key]?._deleted) {
-        delete merged[key];
+      const val = merged[key];
+      if (val !== null && !val?._deleted) {
+        clean[key] = val;
       }
     });
 
-    return Object.keys(merged).length === 0 ? (EMPTY_OBJECT as { [key: string]: DeclaredNumber }) : (merged as { [key: string]: DeclaredNumber });
+    return Object.keys(clean).length === 0 ? (EMPTY_OBJECT as { [key: string]: DeclaredNumber }) : clean;
   }, [data, localDeclaredNumbers]);
 
   const getDeclaredNumber = useCallback((draw: string, date: Date | undefined): string | undefined => {

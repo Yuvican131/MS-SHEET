@@ -188,7 +188,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                 />
             </div>
 
-            <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
+            <Dialog open={isViewEntryDialogOpen} onOpenChange={(open) => setIsViewEntryDialogOpen(open)}>
                 <DialogContent className="max-w-xl rounded-none">
                     <DialogHeader>
                         <DialogTitle className="uppercase font-black">Entry History: {props.draw}</DialogTitle>
@@ -228,7 +228,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isMasterSheetOpen} onOpenChange={setIsMasterSheetOpen}>
+            <Dialog open={isMasterSheetOpen} onOpenChange={(open) => setIsMasterSheetOpen(open)}>
                 <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 overflow-hidden border-zinc-800 rounded-none bg-zinc-950">
                     <DialogHeader className="p-4 border-b border-zinc-800 flex flex-row items-center justify-between">
                         <div>
@@ -274,7 +274,6 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                                 if (logToDelete) {
                                     props.onDeleteLogEntry(logToDelete.id);
                                     setLogToDelete(null);
-                                    setTimeout(() => handleClientChange(selectedClientId!), 100);
                                 }
                             }}
                         >
