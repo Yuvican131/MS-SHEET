@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ChevronLeft, History, Trash2, Eye } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { ChevronLeft, Trash2, FileSpreadsheet, X } from "lucide-react";
 import { GridView } from "@/components/GridView";
 import { DataEntryControls } from "@/components/DataEntryControls";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
+import { format } from "date-fns";
 import type { Client } from "@/hooks/useClients";
 import type { SavedSheetInfo } from "@/hooks/useSheetLog";
 import type { Account } from "@/components/accounts-manager";
@@ -32,6 +33,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
     const [gridData, setGridData] = useState<{ [key: string]: string }>({});
     const [updatedCells, setUpdatedCells] = useState<string[]>([]);
     const [isViewEntryDialogOpen, setIsViewEntryDialogOpen] = useState(false);
+    const [isMasterSheetOpen, setIsMasterSheetOpen] = useState(false);
     const [logToDelete, setLogToDelete] = useState<SavedSheetInfo | null>(null);
     const [history, setHistory] = useState<{ [key: string]: string }[]>([]);
     
@@ -46,11 +48,28 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
         }
     }));
 
+    const dateStr = useMemo(() => format(props.date, 'yyyy-MM-dd'), [props.date]);
+
+    // Aggregate data for the Master Sheet (all clients for this draw/date)
+    const masterData = useMemo(() => {
+        const logs = props.savedSheetLog[props.draw] || [];
+        const totals: { [key: string]: string } = {};
+        logs.forEach(log => {
+            if (log.date === dateStr) {
+                Object.entries(log.data).forEach(([key, val]) => {
+                    const current = parseFloat(totals[key]) || 0;
+                    totals[key] = String(current + (parseFloat(val) || 0));
+                });
+            }
+        });
+        return totals;
+    }, [props.savedSheetLog, props.draw, dateStr]);
+
     const clientEntries = useMemo(() => {
         if (!selectedClientId) return [];
         const logs = props.savedSheetLog[props.draw] || [];
-        return logs.filter(log => log.clientId === selectedClientId);
-    }, [props.savedSheetLog, props.draw, selectedClientId]);
+        return logs.filter(log => log.clientId === selectedClientId && log.date === dateStr);
+    }, [props.savedSheetLog, props.draw, selectedClientId, dateStr]);
 
     const handleClientChange = (clientId: string) => {
         const id = clientId === 'None' ? null : clientId;
@@ -61,7 +80,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
         
         if (id) {
             const logs = props.savedSheetLog[props.draw] || [];
-            const clientLogs = logs.filter(log => log.clientId === id);
+            const clientLogs = logs.filter(log => log.clientId === id && log.date === dateStr);
             const initialData: { [key: string]: string } = {};
             clientLogs.forEach(log => {
                 Object.entries(log.data).forEach(([key, val]) => {
@@ -123,15 +142,6 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
         setUpdatedCells([]);
     };
 
-    const checkBalance = (total: number) => {
-        if (!selectedClientId) return false;
-        const account = props.accounts.find(a => a.id === selectedClientId);
-        if (!account) return true;
-        
-        // This is a soft check, just for UI feedback if needed
-        return true;
-    };
-
     return (
         <div className="flex flex-col h-full gap-4">
             <div className="flex items-center justify-between">
@@ -167,11 +177,11 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                     onDataUpdate={handleDataUpdate}
                     onClear={() => setGridData({})}
                     setLastEntry={() => {}}
-                    checkBalance={checkBalance}
+                    checkBalance={() => true}
                     showClientSelectionToast={() => toast({ title: "Select Client" })}
                     getClientDisplay={(c) => c.name}
                     focusMultiText={() => controlsRef.current?.focus()}
-                    openMasterSheet={() => {}}
+                    openMasterSheet={() => setIsMasterSheetOpen(true)}
                     currentGridData={gridData}
                     draw={props.draw}
                     openViewEntryDialog={() => setIsViewEntryDialogOpen(true)}
@@ -218,6 +228,36 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={isMasterSheetOpen} onOpenChange={setIsMasterSheetOpen}>
+                <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 overflow-hidden border-zinc-800 rounded-none bg-zinc-950">
+                    <DialogHeader className="p-4 border-b border-zinc-800 flex flex-row items-center justify-between">
+                        <div>
+                            <DialogTitle className="uppercase font-black text-primary text-xl flex items-center gap-2">
+                                <FileSpreadsheet className="h-6 w-6" />
+                                MASTER SHEET: {props.draw}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs font-bold text-muted-foreground uppercase">
+                                Combined totals for all clients on {props.date.toLocaleDateString()}
+                            </DialogDescription>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetOpen(false)}>
+                            <X className="h-6 w-6" />
+                        </Button>
+                    </DialogHeader>
+                    <div className="flex-1 min-h-0 p-2 overflow-hidden bg-zinc-950">
+                        <GridView 
+                            currentData={masterData}
+                            updatedCells={[]}
+                            validations={{}}
+                            handleCellChange={() => {}}
+                            handleCellBlur={() => {}}
+                            isDataEntryDisabled={true}
+                            showClientSelectionToast={() => {}}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
                 <DialogContent className="rounded-none">
                     <DialogHeader>
@@ -234,7 +274,6 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                                 if (logToDelete) {
                                     props.onDeleteLogEntry(logToDelete.id);
                                     setLogToDelete(null);
-                                    // Refresh the local grid by re-triggering the client change logic
                                     setTimeout(() => handleClientChange(selectedClientId!), 100);
                                 }
                             }}
