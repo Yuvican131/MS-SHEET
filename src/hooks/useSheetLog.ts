@@ -69,13 +69,10 @@ export const useSheetLog = (userId?: string) => {
     try {
         const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
         const querySnapshot = await getDocs(q);
-
         if (querySnapshot.empty) return;
-
         const batch = writeBatch(firestore);
         querySnapshot.forEach((doc) => batch.delete(doc.ref));
         await batch.commit();
-
         setSheetLogData(currentLogs => {
             if (!currentLogs) return null;
             return currentLogs.filter(log => log.clientId !== clientId);
@@ -89,7 +86,6 @@ export const useSheetLog = (userId?: string) => {
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
     if (!userId) return;
     const dateStr = format(date, 'yyyy-MM-dd');
-
     try {
       const q = query(
         collection(firestore, `users/${userId}/sheetLogs`),
@@ -97,27 +93,21 @@ export const useSheetLog = (userId?: string) => {
         where("date", "==", dateStr)
       );
       const querySnapshot = await getDocs(q);
-
       if (querySnapshot.empty) return;
-      
       const logsToDeleteIds = querySnapshot.docs.map(doc => doc.id);
-      
       setSheetLogData(prevData => {
         if (!prevData) return null;
         return prevData.filter(log => !logsToDeleteIds.includes(log.id));
       });
-
       const batch = writeBatch(firestore);
       querySnapshot.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
-
       toast({ title: "Success", description: `Cleared draw data.` });
     } catch (e) {
       console.error("Error clearing draw logs: ", e);
     }
   }, [firestore, setSheetLogData, toast, userId]);
 
-  // Final return MUST be memoized to prevent infinite re-render loops in page.tsx
   return useMemo(() => ({ 
     savedSheetLog, 
     isLoading, 

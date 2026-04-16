@@ -29,8 +29,6 @@ export function useCollection<T = any>(
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  
-  // Use hash-based checking to prevent redundant re-renders
   const prevDataHash = useRef<string>("");
 
   useEffect(() => {
@@ -52,7 +50,6 @@ export function useCollection<T = any>(
           id: doc.id
         }));
         
-        // Only trigger state update if the data content actually changed
         const currentHash = JSON.stringify(results);
         if (currentHash !== prevDataHash.current) {
           prevDataHash.current = currentHash;
@@ -78,7 +75,6 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
 
-  // Return a memoized object to prevent infinite re-render loops in components using this hook
   return useMemo(() => ({ 
     data, 
     isLoading, 
