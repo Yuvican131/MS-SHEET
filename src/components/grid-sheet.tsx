@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, Trash2, FileSpreadsheet, X, Eye } from "lucide-react";
@@ -67,7 +67,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
         return (props.savedSheetLog[props.draw] || []).filter(l => l.clientId === selectedClientId && l.date === dateStr);
     }, [props.savedSheetLog, props.draw, selectedClientId, dateStr]);
 
-    const handleClientChange = (clientId: string) => {
+    const handleClientChange = useCallback((clientId: string) => {
         const id = clientId === 'None' ? null : clientId;
         setSelectedClientId(id);
         setGridData({});
@@ -84,9 +84,9 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
             });
             setGridData(initial);
         }
-    };
+    }, [props.savedSheetLog, props.draw, dateStr]);
 
-    const handleDataUpdate = (updates: { [key: string]: number | string }, rawInput: string) => {
+    const handleDataUpdate = useCallback((updates: { [key: string]: number | string }, rawInput: string) => {
         setHistory(prev => [...prev, { ...gridData }]);
         const newData = { ...gridData };
         Object.entries(updates).forEach(([k, v]) => {
@@ -104,31 +104,31 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                 props.onClientSheetSave(client.name, client.id, step, props.draw, props.date, rawInput);
             }
         }
-    };
+    }, [gridData, selectedClientId, props.clients, props.draw, props.date, props.onClientSheetSave]);
 
     return (
-        <div className="flex flex-col h-full gap-4">
-            <div className="flex items-center justify-between border-b pb-4">
-                <Button variant="ghost" size="sm" onClick={props.onBack} className="font-black uppercase tracking-widest text-[10px]">
+        <div className="flex flex-col h-full gap-2">
+            <div className="flex items-center justify-between pb-2">
+                <Button variant="ghost" size="sm" onClick={props.onBack} className="font-black uppercase tracking-widest text-[10px] h-8">
                     <ChevronLeft className="mr-1 h-3 w-3" /> Back to Dashboard
                 </Button>
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black uppercase tracking-tighter text-primary">
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-primary">
                         {props.draw} <span className="text-muted-foreground ml-2 font-bold">{format(props.date, "dd/MM/yyyy")}</span>
                     </h2>
                 </div>
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-                <GridView 
-                    currentData={gridData}
-                    updatedCells={updatedCells}
-                    validations={{}}
-                    handleCellChange={(k, v) => setGridData(p => ({ ...p, [k]: v }))}
-                    handleCellBlur={() => {}}
-                    isDataEntryDisabled={!selectedClientId}
-                    showClientSelectionToast={() => toast({ title: "Select Client First" })}
-                />
+                <div className="flex-1 min-h-0 bg-zinc-950">
+                    <GridView 
+                        currentData={gridData}
+                        updatedCells={updatedCells}
+                        handleCellChange={(k, v) => setGridData(p => ({ ...p, [k]: v }))}
+                        isDataEntryDisabled={!selectedClientId}
+                        showClientSelectionToast={() => toast({ title: "Select Client First" })}
+                    />
+                </div>
 
                 <div className="w-full lg:w-80 flex flex-col gap-4">
                     <DataEntryControls 
@@ -153,20 +153,20 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                     />
                     
                     {selectedClientId && (
-                        <Button variant="outline" className="w-full rounded-none font-black uppercase text-[10px] tracking-widest" onClick={() => setIsViewEntryDialogOpen(true)}>
-                            <Eye className="mr-2 h-4 w-4" /> View Client Entries
+                        <Button variant="outline" className="w-full rounded-none font-black uppercase text-[10px] tracking-widest h-10 border-zinc-800" onClick={() => setIsViewEntryDialogOpen(true)}>
+                            <Eye className="mr-2 h-4 w-4" /> View History
                         </Button>
                     )}
                 </div>
             </div>
 
             <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
-                <DialogContent className="max-w-xl rounded-none">
-                    <DialogHeader><DialogTitle className="uppercase font-black">History: {props.draw}</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-xl rounded-none border-zinc-800 bg-zinc-950">
+                    <DialogHeader><DialogTitle className="uppercase font-black tracking-widest text-primary">History: {props.draw}</DialogTitle></DialogHeader>
                     <ScrollArea className="max-h-[60vh] mt-4">
                         <div className="space-y-2 pr-4">
                             {clientEntries.map((e, i) => (
-                                <Card key={e.id} className="p-4 border-l-4 border-l-primary rounded-none flex justify-between items-center bg-muted/5">
+                                <Card key={e.id} className="p-4 border-l-4 border-l-primary rounded-none flex justify-between items-center bg-zinc-900/50 border-zinc-800">
                                     <div className="flex-1">
                                         <p className="font-black text-lg">Entry {i + 1}: <span className="text-primary">₹{formatNumber(e.gameTotal)}</span></p>
                                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">{e.rawInput}</p>
@@ -174,7 +174,7 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
                                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setLogToDelete(e)}><Trash2 className="h-4 w-4" /></Button>
                                 </Card>
                             ))}
-                            {clientEntries.length === 0 && <p className="text-center py-12 text-muted-foreground font-bold">No entries found.</p>}
+                            {clientEntries.length === 0 && <p className="text-center py-12 text-muted-foreground font-bold uppercase text-xs tracking-widest">No entries found.</p>}
                         </div>
                     </ScrollArea>
                 </DialogContent>
@@ -183,20 +183,16 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
             <Dialog open={isMasterSheetOpen} onOpenChange={setIsMasterSheetOpen}>
                 <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 border-zinc-800 rounded-none bg-zinc-950">
                     <DialogHeader className="p-4 border-b border-zinc-800 flex flex-row items-center justify-between">
-                        <div>
-                            <DialogTitle className="uppercase font-black text-primary text-xl flex items-center gap-2">
-                                <FileSpreadsheet className="h-6 w-6" /> MASTER SHEET
-                            </DialogTitle>
-                        </div>
+                        <DialogTitle className="uppercase font-black text-primary text-xl flex items-center gap-2">
+                            <FileSpreadsheet className="h-6 w-6" /> MASTER SHEET
+                        </DialogTitle>
                         <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetOpen(false)}><X className="h-6 w-6" /></Button>
                     </DialogHeader>
                     <div className="flex-1 min-h-0 p-2 overflow-hidden bg-zinc-950">
                         <GridView 
                             currentData={masterData}
                             updatedCells={[]}
-                            validations={{}}
                             handleCellChange={() => {}}
-                            handleCellBlur={() => {}}
                             isDataEntryDisabled={true}
                             showClientSelectionToast={() => {}}
                         />
@@ -205,11 +201,11 @@ const GridSheet = forwardRef<any, GridSheetProps>((props, ref) => {
             </Dialog>
 
             <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
-                <DialogContent className="rounded-none">
-                    <DialogHeader><DialogTitle>Delete Entry?</DialogTitle><DialogDescription className="font-bold">This will remove ₹{logToDelete ? formatNumber(logToDelete.gameTotal) : 0} from the sheet.</DialogDescription></DialogHeader>
+                <DialogContent className="rounded-none border-zinc-800 bg-zinc-950">
+                    <DialogHeader><DialogTitle className="font-black uppercase text-destructive">Delete Entry?</DialogTitle><DialogDescription className="font-bold">This will remove ₹{logToDelete ? formatNumber(logToDelete.gameTotal) : 0} from the sheet.</DialogDescription></DialogHeader>
                     <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" className="rounded-none" onClick={() => setLogToDelete(null)}>Cancel</Button>
-                        <Button variant="destructive" className="rounded-none font-black" onClick={() => { if(logToDelete){props.onDeleteLogEntry(logToDelete.id); setLogToDelete(null);} }}>Delete Entry</Button>
+                        <Button variant="outline" className="rounded-none font-bold" onClick={() => setLogToDelete(null)}>Cancel</Button>
+                        <Button variant="destructive" className="rounded-none font-black uppercase" onClick={() => { if(logToDelete){props.onDeleteLogEntry(logToDelete.id); setLogToDelete(null);} }}>Delete</Button>
                     </div>
                 </DialogContent>
             </Dialog>

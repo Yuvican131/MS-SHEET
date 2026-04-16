@@ -2,8 +2,6 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, Loader2 } from "lucide-react";
 import { formatNumber, cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,15 +9,11 @@ const GRID_ROWS = 10;
 const GRID_COLS = 10;
 
 type CellData = { [key: string]: string };
-type ValidationResult = { isValid: boolean; recommendation: string; };
-type CellValidation = { [key: string]: ValidationResult & { isLoading: boolean } };
 
 interface GridViewProps {
     currentData: CellData;
     updatedCells: string[];
-    validations: CellValidation;
     handleCellChange: (key: string, value: string) => void;
-    handleCellBlur: (key: string) => void;
     isDataEntryDisabled: boolean;
     showClientSelectionToast: () => void;
 }
@@ -27,57 +21,24 @@ interface GridViewProps {
 export function GridView({
     currentData,
     updatedCells,
-    validations,
     handleCellChange,
-    handleCellBlur,
     isDataEntryDisabled,
     showClientSelectionToast,
 }: GridViewProps) {
     const { toast } = useToast();
 
     // Standard numeric cells (01-100)
-    const rowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
-        let total = 0;
-        for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-            const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
-            total += parseFloat(currentData[key]) || 0;
-        }
-        return total;
-    });
-
-    const columnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => {
-        let total = 0;
-        for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
-            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-            const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
-            total += parseFloat(currentData[key]) || 0;
-        }
-        return total;
-    });
-
-    // Harup Totals
     const harupAndarTotal = Array.from({ length: 10 }, (_, i) => parseFloat(currentData[`A${i}`]) || 0).reduce((a, b) => a + b, 0);
     const harupBaharTotal = Array.from({ length: 10 }, (_, i) => parseFloat(currentData[`B${i}`]) || 0).reduce((a, b) => a + b, 0);
-
-    const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0) + harupAndarTotal + harupBaharTotal;
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentKey: string) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            // Basic sequential navigation for standard cells
-            if (!currentKey.startsWith('A') && !currentKey.startsWith('B')) {
-                let currentNum = currentKey === '00' ? 100 : parseInt(currentKey, 10);
-                let nextNum = (currentNum % 100) + 1;
-                let nextKey = nextNum === 100 ? '00' : nextNum.toString().padStart(2, '0');
-                const nextInput = document.getElementById(`cell-${nextKey}`);
-                if (nextInput) {
-                    (nextInput as HTMLInputElement).focus();
-                    (nextInput as HTMLInputElement).select();
-                }
-            }
+    
+    const standardTotal = Object.keys(currentData).reduce((acc, key) => {
+        if (!key.startsWith('A') && !key.startsWith('B')) {
+            return acc + (parseFloat(currentData[key]) || 0);
         }
-    };
+        return acc;
+    }, 0);
+
+    const grandTotal = standardTotal + harupAndarTotal + harupBaharTotal;
 
     const onInputChange = (key: string, value: string) => {
         if (value === '' || /^\d+$/.test(value)) {
@@ -85,18 +46,16 @@ export function GridView({
         } else {
             toast({
                 title: "Only numbers allowed",
-                description: "Please enter numeric values only.",
                 variant: "destructive",
             });
         }
     };
 
     return (
-        <div className="grid-sheet-layout bg-zinc-950 p-0.5 rounded-none border border-zinc-800 shadow-2xl flex-grow min-h-0 overflow-hidden" style={{ gridTemplateColumns: 'repeat(11, 1fr)', gridTemplateRows: 'repeat(11, 1fr)' }}>
-            {/* Rows 1-10 */}
+        <div className="grid grid-cols-[repeat(11,1fr)] grid-rows-[repeat(11,1fr)] gap-px bg-zinc-800 border border-zinc-800 w-full h-full min-h-0 overflow-hidden">
+            {/* Standard 10x10 Grid + Harup Andar Column */}
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`row-${rowIndex}`}>
-                    {/* Columns 1-10: Standard Cells */}
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
                         const displayKey = cellNumber.toString().padStart(2, '0');
@@ -106,81 +65,58 @@ export function GridView({
 
                         return (
                             <div key={dataKey} className={cn(
-                                "relative flex flex-col justify-end border border-zinc-800 rounded-none transition-all h-full min-h-0",
-                                hasValue ? "bg-zinc-900 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]" : "bg-transparent",
-                                isUpdated ? "ring-2 ring-primary ring-inset z-10" : "",
-                                "focus-within:ring-2 focus-within:ring-white focus-within:ring-inset focus-within:z-20"
+                                "relative flex flex-col justify-end bg-zinc-950 border-none transition-all",
+                                hasValue ? "bg-zinc-900" : "",
+                                isUpdated ? "ring-2 ring-primary ring-inset z-10" : ""
                             )}>
-                                <div className="absolute top-0.5 left-1 text-[10px] lg:text-[13px] select-none pointer-events-none z-10 font-black text-cyan-400 opacity-90">{displayKey}</div>
+                                <span className="absolute top-1 left-1 text-[10px] font-black text-cyan-500 pointer-events-none">{displayKey}</span>
                                 <Input
-                                    id={`cell-${dataKey}`}
                                     type="text"
                                     value={currentData[dataKey] || ''}
                                     onChange={(e) => onInputChange(dataKey, e.target.value)}
-                                    onBlur={() => handleCellBlur(dataKey)}
-                                    onKeyDown={(e) => handleKeyDown(e, dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className="p-0 h-full w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-white font-black text-sm lg:text-lg pt-3 lg:pt-6"
+                                    className="p-0 h-full w-full text-right pr-1 bg-transparent border-none rounded-none focus-visible:ring-2 focus-visible:ring-white text-white font-black text-base pt-4"
                                 />
                             </div>
                         )
                     })}
-                    
-                    {/* Column 11: Harup Andar (A0-A9) */}
-                    {(() => {
-                        const dataKey = `A${rowIndex}`;
-                        const isUpdated = updatedCells.includes(dataKey);
-                        const hasValue = !!currentData[dataKey] && parseFloat(currentData[dataKey]) !== 0;
-                        return (
-                            <div key={dataKey} className={cn(
-                                "relative flex flex-col justify-end border border-zinc-800 rounded-none bg-zinc-900/50 h-full min-h-0",
-                                hasValue ? "bg-amber-900/20" : "",
-                                isUpdated ? "ring-2 ring-amber-500 ring-inset z-10" : ""
-                            )}>
-                                <div className="absolute top-0.5 left-1 text-[9px] lg:text-[11px] select-none pointer-events-none z-10 font-black text-amber-500">A{rowIndex}</div>
-                                <Input
-                                    id={`cell-${dataKey}`}
-                                    type="text"
-                                    value={currentData[dataKey] || ''}
-                                    onChange={(e) => onInputChange(dataKey, e.target.value)}
-                                    onBlur={() => handleCellBlur(dataKey)}
-                                    disabled={isDataEntryDisabled}
-                                    className="p-0 h-full w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 text-amber-400 font-black text-xs lg:text-base pt-3"
-                                />
-                            </div>
-                        );
-                    })()}
+                    {/* 11th Column: Harup Andar */}
+                    <div className={cn(
+                        "relative flex flex-col justify-end bg-zinc-900/50 border-none",
+                        updatedCells.includes(`A${rowIndex}`) ? "ring-2 ring-amber-500 ring-inset z-10" : ""
+                    )}>
+                        <span className="absolute top-1 left-1 text-[10px] font-black text-amber-500">A{rowIndex}</span>
+                        <Input
+                            type="text"
+                            value={currentData[`A${rowIndex}`] || ''}
+                            onChange={(e) => onInputChange(`A${rowIndex}`, e.target.value)}
+                            disabled={isDataEntryDisabled}
+                            className="p-0 h-full w-full text-right pr-1 bg-transparent border-none rounded-none focus-visible:ring-2 focus-visible:ring-amber-500 text-amber-400 font-black text-base pt-4"
+                        />
+                    </div>
                 </React.Fragment>
             ))}
 
-            {/* Row 11: Harup Bahar (B0-B9) & Grand Total */}
-            {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                const dataKey = `B${colIndex}`;
-                const isUpdated = updatedCells.includes(dataKey);
-                const hasValue = !!currentData[dataKey] && parseFloat(currentData[dataKey]) !== 0;
-                return (
-                    <div key={dataKey} className={cn(
-                        "relative flex flex-col justify-end border border-zinc-800 rounded-none bg-zinc-900/50 h-full min-h-0",
-                        hasValue ? "bg-amber-900/20" : "",
-                        isUpdated ? "ring-2 ring-amber-500 ring-inset z-10" : ""
-                    )}>
-                        <div className="absolute top-0.5 left-1 text-[9px] lg:text-[11px] select-none pointer-events-none z-10 font-black text-amber-500">B{colIndex}</div>
-                        <Input
-                            id={`cell-${dataKey}`}
-                            type="text"
-                            value={currentData[dataKey] || ''}
-                            onChange={(e) => onInputChange(dataKey, e.target.value)}
-                            onBlur={() => handleCellBlur(dataKey)}
-                            disabled={isDataEntryDisabled}
-                            className="p-0 h-full w-full text-center bg-transparent border-0 rounded-none focus-visible:ring-0 text-amber-400 font-black text-xs lg:text-base pt-3"
-                        />
-                    </div>
-                );
-            })}
+            {/* 11th Row: Harup Bahar + Grand Total */}
+            {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+                <div key={`B${colIndex}`} className={cn(
+                    "relative flex flex-col justify-end bg-zinc-900/50 border-none",
+                    updatedCells.includes(`B${colIndex}`) ? "ring-2 ring-amber-500 ring-inset z-10" : ""
+                )}>
+                    <span className="absolute top-1 left-1 text-[10px] font-black text-amber-500">B{colIndex}</span>
+                    <Input
+                        type="text"
+                        value={currentData[`B${colIndex}`] || ''}
+                        onChange={(e) => onInputChange(`B${colIndex}`, e.target.value)}
+                        disabled={isDataEntryDisabled}
+                        className="p-0 h-full w-full text-right pr-1 bg-transparent border-none rounded-none focus-visible:ring-2 focus-visible:ring-amber-500 text-amber-400 font-black text-base pt-4"
+                    />
+                </div>
+            ))}
             
-            {/* Grand Total Box (Bottom Right) */}
-            <div className="flex items-center justify-center font-black text-xs lg:text-xl border-2 border-green-500/50 rounded-none bg-zinc-900 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] h-full min-h-0 overflow-hidden">
+            {/* Final Cell: Grand Total */}
+            <div className="flex items-center justify-center bg-zinc-900 border-none text-primary font-black text-lg ring-1 ring-primary/50">
                 {formatNumber(grandTotal)}
             </div>
         </div>
