@@ -33,14 +33,14 @@ export function useCollection<T = any>(
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
-      if (data !== null) setData(null);
-      if (isLoading) setIsLoading(false);
-      if (error !== null) setError(null);
+      setData(null);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
-    if (!isLoading) setIsLoading(true);
-    if (error) setError(null);
+    setIsLoading(true);
+    setError(null);
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,

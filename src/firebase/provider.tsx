@@ -70,7 +70,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => { 
         setUserAuthState(prev => {
-          // Only update if UID or loading state changed to prevent re-renders
           if (prev.user?.uid === firebaseUser?.uid && prev.isUserLoading === false) {
             return prev;
           }
@@ -116,7 +115,6 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     throw new Error('Firebase core services not available. Check FirebaseProvider props.');
   }
 
-  // Memoize the return object to prevent infinite re-renders in consumers
   return useMemo(() => ({
     firebaseApp: context.firebaseApp!,
     firestore: context.firestore!,
@@ -148,6 +146,5 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
 
 export const useUser = (): UserHookResult => { 
   const { user, isUserLoading, userError } = useFirebase(); 
-  // Memoize the return object to prevent infinite re-renders in consumers
   return useMemo(() => ({ user, isUserLoading, userError }), [user, isUserLoading, userError]);
 };

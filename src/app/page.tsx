@@ -8,7 +8,7 @@ import AccountsManager, { Account, DrawData } from "@/components/accounts-manage
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
 import { AuthScreen } from "@/components/auth-screen"
-import { Users, Building, Calendar as CalendarIcon, FileSpreadsheet, Shield, PlusCircle, Trash2, Megaphone, ArrowUpRight, Sun, Moon, LogOut, Loader2, LayoutDashboard } from 'lucide-react';
+import { Users, Building, Calendar as CalendarIcon, FileSpreadsheet, Shield, PlusCircle, Trash2, Megaphone, Sun, Moon, LogOut, Loader2, LayoutDashboard } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -58,7 +58,7 @@ export default function Home() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Secure Environment...</p>
+        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Environment...</p>
       </div>
     );
   }
@@ -84,13 +84,12 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
-  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(userId);
+  const { clients, handleClientTransaction, clearClientData, updateClient, addClient, deleteClient } = useClients(userId);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(userId);
   const { setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, declaredNumbers } = useDeclaredNumbers(userId);
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(() => new Date());
-  const [manualSheets, setManualSheets] = useState<ActiveSheet[]>([]);
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>(EMPTY_SETTLEMENTS);
 
@@ -121,19 +120,11 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       }
     });
 
-    manualSheets.forEach(m => {
-        const key = `${m.draw}-${format(m.date, 'yyyy-MM-dd')}`;
-        if (!uniqueSheetKeys.has(key)) {
-            uniqueSheetKeys.add(key);
-            allSheets.push(m);
-        }
-    });
-
     return allSheets.sort((a, b) => {
         const diff = b.date.getTime() - a.date.getTime();
         return diff !== 0 ? diff : DRAWS_ORDER.indexOf(a.draw) - DRAWS_ORDER.indexOf(b.draw);
     });
-  }, [savedSheetLog, manualSheets]);
+  }, [savedSheetLog]);
 
   const accounts = useMemo(() => {
     if (!clients || clients.length === 0) return EMPTY_ARRAY;
@@ -142,7 +133,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
     return clients.map(client => {
       const commPercent = parseFloat(client.comm) / 100 || 0;
       const multiplier = parseFloat(client.pair) || 90;
-  
       const logsByDate: Record<string, SavedSheetInfo[]> = {};
       allLogs.filter(log => log.clientId === client.id).forEach(log => {
           if (!logsByDate[log.date]) logsByDate[log.date] = [];
@@ -189,8 +179,6 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
 
   const handleAddSheet = useCallback(() => {
     if(formSelectedDraw && formSelectedDate) {
-        const newSheet = { draw: formSelectedDraw, date: startOfDay(formSelectedDate) };
-        setManualSheets(prev => [newSheet, ...prev.filter(s => !(s.draw === newSheet.draw && isSameDay(s.date, newSheet.date)))]);
         setSelectedDraw(formSelectedDraw);
         setSelectedDate(formSelectedDate);
     }
@@ -252,14 +240,14 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">
-                <Card className="w-full max-w-2xl rounded-none border-zinc-800">
+                <Card className="w-full max-w-2xl rounded-none border-zinc-800 bg-zinc-950">
                     <CardHeader><CardTitle className="uppercase font-black tracking-tighter">Open New Sheet</CardTitle></CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase">Draw</Label>
                                 <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
-                                    <SelectTrigger className="rounded-none"><SelectValue placeholder="Select Draw..." /></SelectTrigger>
+                                    <SelectTrigger className="rounded-none border-zinc-800"><SelectValue placeholder="Select Draw..." /></SelectTrigger>
                                     <SelectContent className="rounded-none">{DRAWS_ORDER.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                                 </Select>
                             </div>
@@ -267,16 +255,16 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                                 <Label className="text-[10px] font-black uppercase">Date</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start text-left font-bold rounded-none">
+                                        <Button variant="outline" className="w-full justify-start text-left font-bold rounded-none border-zinc-800">
                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                             {formSelectedDate ? format(formSelectedDate, "PPP") : "Pick Date"}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 rounded-none"><Calendar mode="single" selected={formSelectedDate} onSelect={d => d && setFormSelectedDate(d)} initialFocus /></PopoverContent>
+                                    <PopoverContent className="w-auto p-0 rounded-none border-zinc-800"><Calendar mode="single" selected={formSelectedDate} onSelect={d => d && setFormSelectedDate(d)} initialFocus /></PopoverContent>
                                 </Popover>
                             </div>
                         </div>
-                        <Button onClick={handleAddSheet} className="w-full mt-6 rounded-none font-black uppercase tracking-widest" disabled={!formSelectedDraw || !formSelectedDate}>
+                        <Button onClick={handleAddSheet} className="w-full mt-6 rounded-none font-black uppercase tracking-widest bg-primary" disabled={!formSelectedDraw || !formSelectedDate}>
                           <PlusCircle className="mr-2 h-4 w-4" /> Add Sheet
                         </Button>
                     </CardContent>
@@ -288,7 +276,7 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
                     {activeSheets.map((sheet, idx) => {
                       const res = getDeclaredNumber(sheet.draw, sheet.date);
                       return (
-                      <Card key={`${sheet.draw}-${idx}`} className="flex items-center justify-between p-4 rounded-none hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedDraw(sheet.draw); setSelectedDate(sheet.date); }}>
+                      <Card key={`${sheet.draw}-${idx}`} className="flex items-center justify-between p-4 rounded-none border-zinc-800 hover:bg-muted/50 cursor-pointer bg-zinc-950" onClick={() => { setSelectedDraw(sheet.draw); setSelectedDate(sheet.date); }}>
                         <div className="flex items-center gap-4">
                            <div className="flex items-center justify-center h-12 w-12 rounded-full border-2 border-primary text-primary font-black text-xl">{sheet.draw}</div>
                            <div>
@@ -317,21 +305,21 @@ function AuthenticatedApp({ userId, onLogout }: { userId: string, onLogout: () =
       </main>
 
       <Dialog open={isDeclarationDialogOpen} onOpenChange={setIsDeclarationDialogOpen}>
-        <DialogContent className="rounded-none">
+        <DialogContent className="rounded-none border-zinc-800 bg-zinc-950">
           <DialogHeader><DialogTitle className="uppercase font-black tracking-widest">Declare Result: {declarationDraw}</DialogTitle></DialogHeader>
           <div className="my-6 space-y-4">
              <Label className="text-[10px] font-black uppercase">Winning Number</Label>
-             <Input value={declarationNumber} onChange={e => setDeclarationNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="00" className="text-center text-5xl font-black h-24 rounded-none" />
+             <Input value={declarationNumber} onChange={e => setDeclarationNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="00" className="text-center text-5xl font-black h-24 rounded-none border-zinc-800" />
           </div>
           <DialogFooter className="gap-2">
             <Button onClick={() => { removeDeclaredNumber(declarationDraw, selectedDate); setIsDeclarationDialogOpen(false); }} variant="destructive" className="rounded-none font-bold">Undeclare</Button>
-            <Button onClick={() => { if(declarationNumber.length===2){setDeclaredNumber(declarationDraw, declarationNumber, selectedDate); setIsDeclarationDialogOpen(false); setDeclarationNumber(""); toast({title:"Success"});} }} className="rounded-none font-black">Confirm</Button>
+            <Button onClick={() => { if(declarationNumber.length===2){setDeclaredNumber(declarationDraw, declarationNumber, selectedDate); setIsDeclarationDialogOpen(false); setDeclarationNumber(""); toast({title:"Success"});} }} className="rounded-none font-black bg-primary">Confirm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={!!drawToDelete} onOpenChange={() => setDrawToDelete(null)}>
-        <AlertDialogContent className="rounded-none">
+        <AlertDialogContent className="rounded-none border-zinc-800 bg-zinc-950">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-black uppercase">Clear Draw Data?</AlertDialogTitle>
             <AlertDialogDescription className="font-bold">Delete all saved sheets for {drawToDelete?.draw} on {drawToDelete ? format(drawToDelete.date, 'PPP') : ''}?</AlertDialogDescription>
